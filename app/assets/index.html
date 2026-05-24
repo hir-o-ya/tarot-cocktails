@@ -368,7 +368,7 @@ function showResult(){const d=(mode==='a'?card.a:card.na)[up?'u':'v'];const isA=
 
 function toggleRec(el){const r=el.querySelector('.rrows');const t=el.querySelector('span:last-child');r.classList.toggle('open');t.textContent=r.classList.contains('open')?'▴':'▾';}
 function openMap(){window.open('https://www.google.com/maps/search/'+encodeURIComponent('cocktail bar near me'),'_blank');}
-function doShare(cardName,cocktailName,orient){const text='今夜、'+cardName+'（'+orient+'）に選ばれた。\n一杯は '+cocktailName+'。\n\n#TarotAndCocktails #今夜の一杯 #タロット占い';if(navigator.share)navigator.share({title:'Tarot & Cocktails',text:text}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(text).then(()=>alert('テキストをコピーしました！SNSに貼り付けてシェアしてね'));}
+function doShare(cardName,cocktailName,orient){const text='今夜、'+cardName+'（'+orient+'）に選ばれた。\n一杯は '+cocktailName+'。\n\n#TarotAndCocktails #今夜の一杯 #タロット占い';if(window.ReactNativeWebView){window.ReactNativeWebView.postMessage(JSON.stringify({type:'share',text:text}));}else if(navigator.share){navigator.share({title:'Tarot & Cocktails',text:text}).catch(()=>{});}else if(navigator.clipboard){navigator.clipboard.writeText(text).then(()=>alert('テキストをコピーしました！SNSに貼り付けてシェアしてね'));}}
 function reset(){if(animId){cancelAnimationFrame(animId);animId=null;}mqs=0;ans=[];card=null;show('p-mode');}
 </script>
 </body>

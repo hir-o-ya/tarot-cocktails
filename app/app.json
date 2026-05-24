@@ -6,6 +6,7 @@
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#08091a",
+    "icon": "./assets/icon-1024.png",
     "splash": {
       "backgroundColor": "#08091a",
       "resizeMode": "contain"
@@ -16,6 +17,11 @@
       "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "15d11687-0d09-4960-9460-c12271b506af"
       }
     }
   }
