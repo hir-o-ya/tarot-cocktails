@@ -30,13 +30,13 @@ export default function App() {
         domStorageEnabled={true}
         allowsInlineMediaPlayback={true}
         onMessage={handleMessage}
-        onShouldStartLoadWithRequest={(request) => {
-          if (request.url.includes('google.com/maps')) {
-            Linking.openURL(request.url);
-            return false;
-          }
-          return true;
-        }}
+onShouldStartLoadWithRequest={(request) => {
+  if (request.url.includes('maps.apple.com') || request.url.includes('navigator.share')) {
+    Linking.openURL(request.url);
+    return false;
+  }
+  return true;
+}}
       />
     </SafeAreaView>
   );

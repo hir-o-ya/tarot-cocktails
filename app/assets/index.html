@@ -34,6 +34,29 @@ html,body{background:#08091a;font-family:-apple-system,BlinkMacSystemFont,'Segoe
 .mdesc{font-size:12px;color:var(--text2);text-align:center;line-height:1.6}
 .sbtn{width:100%;padding:13px;border-radius:var(--r2);border:none;font-size:14px;font-weight:600;cursor:pointer;color:#fff;letter-spacing:.3px;transition:all .2s}
 .sbtn.v{background:var(--btn-a-bg);box-shadow:var(--btn-a-sh)}.sbtn.t{background:var(--btn-n-bg);box-shadow:var(--btn-n-sh)}
+
+/* Gallery */
+.gal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;padding:0 4px}
+.gal-card{background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;transition:all .15s}
+.gal-card:hover{background:rgba(255,255,255,.08);border-color:rgba(200,168,74,.4)}
+.gal-sym{font-size:28px;line-height:1.2}
+.gal-nm{font-size:11px;color:#fce890;margin-top:4px;font-weight:500}
+.gal-en{font-size:8px;color:rgba(200,168,74,.5);letter-spacing:.5px}
+.gal-detail{width:100%;display:flex;flex-direction:column;gap:10px;animation:fu .3s ease-out}
+.gal-back{font-size:12px;color:rgba(200,168,74,.6);cursor:pointer;display:flex;align-items:center;gap:4px}
+.gal-back:hover{color:var(--gold)}
+.gal-pair{background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.1);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px}
+.gal-pair-title{font-size:10px;letter-spacing:1px;color:rgba(200,168,74,.6);text-transform:uppercase}
+.gal-pair-name{font-size:16px;font-weight:500;color:var(--text)}
+.gal-pair-note{font-size:12px;color:var(--text2)}
+.gal-pair-story{font-size:12px;color:var(--text2);line-height:1.7;font-style:italic}
+.gal-tab{display:flex;gap:6px;width:100%}
+.gal-tab-btn{flex:1;padding:8px;border-radius:20px;border:0.5px solid rgba(255,255,255,.12);background:transparent;font-size:12px;color:var(--text2);cursor:pointer;transition:all .15s}
+.gal-tab-btn.on{background:var(--vbg);color:var(--v2);border-color:var(--vborder)}
+.gal-tab-btn.on-na{background:var(--tbg);color:var(--t2);border-color:var(--tborder)}
+.menu-btn{width:100%;padding:11px;border-radius:var(--r2);border:0.5px solid rgba(200,168,74,.3);background:transparent;font-size:13px;cursor:pointer;color:var(--gold);display:flex;align-items:center;justify-content:center;gap:7px;transition:all .15s;letter-spacing:.5px}
+.menu-btn:hover{background:rgba(200,168,74,.08)}
+
 /* Dots */
 .dots{display:flex;gap:6px}.dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.15);transition:all .2s}
 .dot.av{background:var(--vborder)}.dot.dv{background:var(--v2)}.dot.at{background:var(--tborder)}.dot.dt{background:var(--t2)}
@@ -130,6 +153,7 @@ html,body{background:#08091a;font-family:-apple-system,BlinkMacSystemFont,'Segoe
 <div class="mtog"><button class="mbtn va" id="mb-a" onclick="setMode('a')">🍸 アルコール</button><button class="mbtn" id="mb-n" onclick="setMode('n')">🌿 ノンアルコール</button></div>
 <div class="mdesc" id="mdesc">カードの世界観に合わせた、ストーリーのあるカクテルを一杯。</div>
 <button class="sbtn v" id="stbtn" onclick="goMood()">今夜の一杯を探す →</button>
+<button class="menu-btn" id="galbtn" onclick="showGallery()">📖 カード図鑑（全22枚）</button>
 </div>
 
 <!-- MOOD -->
@@ -171,6 +195,14 @@ html,body{background:#08091a;font-family:-apple-system,BlinkMacSystemFont,'Segoe
 <div class="drps"><div class="drp" style="background:#5DCAA5;animation-delay:0s"></div><div class="drp" style="background:#7F77DD;animation-delay:.18s"></div><div class="drp" style="background:#ED93B1;animation-delay:.36s"></div></div>
 </div>
 <div class="sl" id="sl">調合中...</div>
+</div>
+
+
+<!-- GALLERY -->
+<div class="ph" id="p-gal">
+<div class="lbl">カード図鑑 — 全22枚</div>
+<div id="gal-content"></div>
+<button class="menu-btn" onclick="show('p-mode')" style="margin-top:8px">← モード選択に戻る</button>
 </div>
 
 <!-- RESULT -->
@@ -367,8 +399,85 @@ function spawnDrop(){const d=document.createElementNS('http://www.w3.org/2000/sv
 function showResult(){const d=(mode==='a'?card.a:card.na)[up?'u':'v'];const isA=mode==='a';const stars=['','★','★★'];const shareText='今夜、'+card.nm+'に選ばれた。\n一杯は '+d.c+'。\n\n#TarotAndCocktails #今夜の一杯 #タロット占い';document.getElementById('rw').innerHTML='<div class="rbadge '+(isA?'v':'t')+'">'+(isA?'🍸 カクテル':'🌿 モクテル')+'</div><div class="rpair '+(isA?'v':'t')+'">'+card.s+' '+card.nm+' × '+d.c+'</div><div class="rhero"><div class="ricon">'+d.i+'</div><div class="rname">'+d.c+'</div><div class="rorient '+(up?'ppu':'ppr')+'">'+d.o+' — '+(d.nt||'')+'</div><div class="rstory">'+d.st+'</div>'+(!isA&&d.h?'<div class="rherb">🌿 '+d.h+'</div>':'')+(isA&&d.d?'<div class="rdiff"><span class="'+(d.d===1?'d1':'d2')+'">'+stars[d.d]+'</span><span>'+d.dl+'</span>'+(ABV[d.c]?'<span class="abv">'+ABV[d.c]+'</span>':'')+'</div>':'')+'</div><div class="rrec" onclick="toggleRec(this)"><div class="rrect">レシピを見る<span>▾</span></div><div class="rrows">'+d.r.map(x=>'<div class="rrow">'+x[0]+'<span>'+x[1]+'</span></div>').join('')+'</div></div><button class="mpb" onclick="openMap()">📍 近くのバーを探す →</button><button class="mpb" onclick="doShare(\''+card.nm+'\',\''+d.c.replace(/'/g,"\\'")+'\',\''+d.o+'\')">📤 シェアする</button><button class="ragn '+(isA?'v':'t')+'" onclick="reset()">最初からやり直す</button>';show('p-res');}
 
 function toggleRec(el){const r=el.querySelector('.rrows');const t=el.querySelector('span:last-child');r.classList.toggle('open');t.textContent=r.classList.contains('open')?'▴':'▾';}
-function openMap(){window.open('https://www.google.com/maps/search/'+encodeURIComponent('cocktail bar near me'),'_blank');}
+function openMap(){window.open('https://maps.apple.com/?q='+encodeURIComponent('cocktail bar'),'_blank');}
 function doShare(cardName,cocktailName,orient){const text='今夜、'+cardName+'（'+orient+'）に選ばれた。\n一杯は '+cocktailName+'。\n\n#TarotAndCocktails #今夜の一杯 #タロット占い';if(window.ReactNativeWebView){window.ReactNativeWebView.postMessage(JSON.stringify({type:'share',text:text}));}else if(navigator.share){navigator.share({title:'Tarot & Cocktails',text:text}).catch(()=>{});}else if(navigator.clipboard){navigator.clipboard.writeText(text).then(()=>alert('テキストをコピーしました！SNSに貼り付けてシェアしてね'));}}
+
+
+// === GALLERY ===
+function showGallery(){
+  const cont=document.getElementById('gal-content');
+  let html='<div class="gal-grid">';
+  C.forEach(c=>{
+    html+=`<div class="gal-card" onclick="showGalDetail(${c.n})">
+      <div class="gal-sym">${c.s}</div>
+      <div class="gal-nm">${c.nm}</div>
+      <div class="gal-en">${c.en}</div>
+    </div>`;
+  });
+  html+='</div>';
+  cont.innerHTML=html;
+  show('p-gal');
+}
+
+function showGalDetail(num){
+  const c=C.find(x=>x.n===num);
+  if(!c)return;
+  const cont=document.getElementById('gal-content');
+  const au=c.a.u, av=c.a.v, nu=c.na.u, nv=c.na.v;
+  const stars=['','★','★★'];
+
+  let html=`<div class="gal-detail">
+    <div class="gal-back" onclick="showGallery()">← 図鑑に戻る</div>
+    <div style="text-align:center">
+      <div style="font-size:48px;margin:8px 0">${c.s}</div>
+      <div style="font-size:22px;font-weight:500;color:#fce890">${c.nm}</div>
+      <div style="font-size:12px;color:rgba(200,168,74,.6);letter-spacing:2px;margin-top:4px">${c.en}</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:6px;font-style:italic">${c.k}</div>
+    </div>
+    <div class="gal-tab">
+      <button class="gal-tab-btn on" id="gt-alc" onclick="switchGalTab('alc',${num})">🍸 アルコール</button>
+      <button class="gal-tab-btn" id="gt-na" onclick="switchGalTab('na',${num})">🌿 ノンアル</button>
+    </div>
+    <div id="gal-pairs">`;
+
+  html+=renderGalPairs(au, av, 'alc');
+  html+=`</div></div>`;
+  cont.innerHTML=html;
+}
+
+function switchGalTab(tab, num){
+  const c=C.find(x=>x.n===num);
+  document.getElementById('gt-alc').className='gal-tab-btn'+(tab==='alc'?' on':'');
+  document.getElementById('gt-na').className='gal-tab-btn'+(tab==='na'?' on-na':'');
+  const pairs=document.getElementById('gal-pairs');
+  if(tab==='alc') pairs.innerHTML=renderGalPairs(c.a.u, c.a.v, 'alc');
+  else pairs.innerHTML=renderGalPairs(c.na.u, c.na.v, 'na');
+}
+
+function renderGalPairs(up, rev, mode){
+  const stars=['','★','★★'];
+  const isA=mode==='alc';
+  let html='';
+
+  // Upright
+  html+=`<div class="gal-pair">
+    <div class="gal-pair-title">▲ 正位置</div>
+    <div class="gal-pair-name">${up.i} ${up.c}</div>
+    <div class="gal-pair-note">${isA?(up.nt+' · '+stars[up.d]+' '+up.dl):up.h}</div>
+    <div class="gal-pair-story">${up.st}</div>
+  </div>`;
+
+  // Reversed
+  html+=`<div class="gal-pair">
+    <div class="gal-pair-title">▼ 逆位置</div>
+    <div class="gal-pair-name">${rev.i} ${rev.c}</div>
+    <div class="gal-pair-note">${isA?(rev.nt+' · '+stars[rev.d]+' '+rev.dl):rev.h}</div>
+    <div class="gal-pair-story">${rev.st}</div>
+  </div>`;
+
+  return html;
+}
+
 function reset(){if(animId){cancelAnimationFrame(animId);animId=null;}mqs=0;ans=[];card=null;show('p-mode');}
 </script>
 </body>

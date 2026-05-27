@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tarot&Co.",
     "slug": "tarot-cocktails",
-    "version": "1.0.0",
+"version": "1.0.1",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#08091a",
@@ -14,7 +14,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "app.tarotcocktails",
-      "buildNumber": "1",
+"buildNumber": "3",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
