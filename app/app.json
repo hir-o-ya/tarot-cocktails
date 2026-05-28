@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tarot&Co.",
     "slug": "tarot-cocktails",
-"version": "1.0.2",
+"version": "1.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#08091a",

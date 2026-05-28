@@ -57,6 +57,11 @@ html,body{background:#08091a;font-family:-apple-system,BlinkMacSystemFont,'Segoe
 .menu-btn{width:100%;padding:11px;border-radius:var(--r2);border:0.5px solid rgba(200,168,74,.3);background:transparent;font-size:13px;cursor:pointer;color:var(--gold);display:flex;align-items:center;justify-content:center;gap:7px;transition:all .15s;letter-spacing:.5px}
 .menu-btn:hover{background:rgba(200,168,74,.08)}
 
+
+.hist-item{width:100%;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.1);border-radius:12px;padding:11px;margin-top:7px;cursor:pointer;transition:background .15s}
+.hist-item:hover{background:rgba(255,255,255,.08)}
+.favbtn{width:100%;padding:11px;border-radius:var(--r2);border:0.5px solid rgba(200,168,74,.3);background:transparent;font-size:13px;cursor:pointer;color:var(--gold);text-align:center;transition:all .15s;letter-spacing:.5px}
+.favbtn:hover{background:rgba(200,168,74,.08)}
 /* Dots */
 .dots{display:flex;gap:6px}.dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.15);transition:all .2s}
 .dot.av{background:var(--vborder)}.dot.dv{background:var(--v2)}.dot.at{background:var(--tborder)}.dot.dt{background:var(--t2)}
@@ -154,6 +159,8 @@ html,body{background:#08091a;font-family:-apple-system,BlinkMacSystemFont,'Segoe
 <div class="mdesc" id="mdesc">カードの世界観に合わせた、ストーリーのあるカクテルを一杯。</div>
 <button class="sbtn v" id="stbtn" onclick="goMood()">今夜の一杯を探す →</button>
 <button class="menu-btn" id="galbtn" onclick="showGallery()">📖 カード図鑑（全22枚）</button>
+<button class="menu-btn" onclick="showFavorites()">❤ お気に入り</button>
+<button class="menu-btn" onclick="showHistory()">📜 履歴</button>
 </div>
 
 <!-- MOOD -->
@@ -203,6 +210,22 @@ html,body{background:#08091a;font-family:-apple-system,BlinkMacSystemFont,'Segoe
 <div class="lbl">カード図鑑 — 全22枚</div>
 <div id="gal-content"></div>
 <button class="menu-btn" onclick="show('p-mode')" style="margin-top:8px">← モード選択に戻る</button>
+</div>
+
+
+<!-- FAVORITES -->
+<div class="ph" id="p-fav">
+<div class="lbl">❤ お気に入り</div>
+<div id="fav-list" style="width:100%"></div>
+<button class="menu-btn" onclick="show('p-mode')" style="margin-top:12px">← 戻る</button>
+</div>
+
+<!-- HISTORY -->
+<div class="ph" id="p-hist">
+<div class="lbl">📜 履歴</div>
+<div id="hist-list" style="width:100%"></div>
+<button class="menu-btn" onclick="clearAllHistory()" style="margin-top:12px;color:#E05555">🗑 履歴をクリア</button>
+<button class="menu-btn" onclick="show('p-mode')" style="margin-top:8px">← 戻る</button>
 </div>
 
 <!-- RESULT -->
@@ -396,7 +419,7 @@ function goShake(){const sk=document.getElementById('ski');sk.textContent='🃏 
 function animShake(){t+=0.052;const rot=Math.sin(t*2.1)*16+Math.sin(t*3.3)*5,tx=Math.sin(t*2.0+.5)*10,ty=-Math.abs(Math.sin(t*2.1))*14;document.getElementById('shkg').style.transform='translateX('+tx+'px) translateY('+ty+'px) rotate('+rot+'deg)';document.querySelectorAll('#iceg rect').forEach((r,i)=>{const bx=parseFloat(r.getAttribute('x')),by=parseFloat(r.getAttribute('y'));const bw=parseFloat(r.getAttribute('width')),bh=parseFloat(r.getAttribute('height'));const ang=Math.sin(t*2.4+i*1.4)*20,dx=Math.sin(t*2.8+i*1.1)*5,dy=Math.sin(t*3.1+i*0.9)*4;r.setAttribute('transform','rotate('+ang+','+(bx+bw/2)+','+(by+bh/2)+') translate('+dx+','+dy+')');});if(Math.random()<0.05)spawnDrop();animId=requestAnimationFrame(animShake);}
 function spawnDrop(){const d=document.createElementNS('http://www.w3.org/2000/svg','circle');const cols=['#85B7EB','#AFA9EC','#9FE1CB','#F4C0D1'];d.setAttribute('cx',55+Math.random()*50);d.setAttribute('cy',92);d.setAttribute('r',1.8+Math.random()*2.2);d.setAttribute('fill',cols[Math.floor(Math.random()*cols.length)]);d.setAttribute('opacity','0.9');document.getElementById('drpsg').appendChild(d);let op=0.9,vy=0;(function fall(){vy+=0.4;const cy=parseFloat(d.getAttribute('cy'));op-=0.025;d.setAttribute('cy',cy+vy*0.22+1.5);d.setAttribute('opacity',Math.max(0,op));if(op>0)requestAnimationFrame(fall);else d.remove();})();}
 
-function showResult(){const d=(mode==='a'?card.a:card.na)[up?'u':'v'];const isA=mode==='a';const stars=['','★','★★'];const shareText='今夜、'+card.nm+'に選ばれた。\n一杯は '+d.c+'。\n\n#TarotAndCocktails #今夜の一杯 #タロット占い';document.getElementById('rw').innerHTML='<div class="rbadge '+(isA?'v':'t')+'">'+(isA?'🍸 カクテル':'🌿 モクテル')+'</div><div class="rpair '+(isA?'v':'t')+'">'+card.s+' '+card.nm+' × '+d.c+'</div><div class="rhero"><div class="ricon">'+d.i+'</div><div class="rname">'+d.c+'</div><div class="rorient '+(up?'ppu':'ppr')+'">'+d.o+' — '+(d.nt||'')+'</div><div class="rstory">'+d.st+'</div>'+(!isA&&d.h?'<div class="rherb">🌿 '+d.h+'</div>':'')+(isA&&d.d?'<div class="rdiff"><span class="'+(d.d===1?'d1':'d2')+'">'+stars[d.d]+'</span><span>'+d.dl+'</span>'+(ABV[d.c]?'<span class="abv">'+ABV[d.c]+'</span>':'')+'</div>':'')+'</div><div class="rrec" onclick="toggleRec(this)"><div class="rrect">レシピを見る<span>▾</span></div><div class="rrows">'+d.r.map(x=>'<div class="rrow">'+x[0]+'<span>'+x[1]+'</span></div>').join('')+'</div></div><button class="mpb" onclick="openMap()">📍 近くのバーを探す →</button><button class="mpb" onclick="doShare(\''+card.nm+'\',\''+d.c.replace(/'/g,"\\'")+'\',\''+d.o+'\')">📤 シェアする</button><button class="ragn '+(isA?'v':'t')+'" onclick="reset()">最初からやり直す</button>';show('p-res');}
+function showResult(){addToHistory();checkFavStatus();const d=(mode==='a'?card.a:card.na)[up?'u':'v'];const isA=mode==='a';const stars=['','★','★★'];const shareText='今夜、'+card.nm+'に選ばれた。\n一杯は '+d.c+'。\n\n#TarotAndCocktails #今夜の一杯 #タロット占い';document.getElementById('rw').innerHTML='<div class="rbadge '+(isA?'v':'t')+'">'+(isA?'🍸 カクテル':'🌿 モクテル')+'</div><div class="rpair '+(isA?'v':'t')+'">'+card.s+' '+card.nm+' × '+d.c+'</div><div class="rhero"><div class="ricon">'+d.i+'</div><div class="rname">'+d.c+'</div><div class="rorient '+(up?'ppu':'ppr')+'">'+d.o+' — '+(d.nt||'')+'</div><div class="rstory">'+d.st+'</div>'+(!isA&&d.h?'<div class="rherb">🌿 '+d.h+'</div>':'')+(isA&&d.d?'<div class="rdiff"><span class="'+(d.d===1?'d1':'d2')+'">'+stars[d.d]+'</span><span>'+d.dl+'</span>'+(ABV[d.c]?'<span class="abv">'+ABV[d.c]+'</span>':'')+'</div>':'')+'</div><div class="rrec" onclick="toggleRec(this)"><div class="rrect">レシピを見る<span>▾</span></div><div class="rrows">'+d.r.map(x=>'<div class="rrow">'+x[0]+'<span>'+x[1]+'</span></div>').join('')+'</div></div><button class="mpb" id="favbtn" onclick="toggleFavorite()" class="favbtn">🤍 お気に入りに追加</button><button class="mpb" onclick="openMap()">📍 近くのバーを探す →</button><button class="mpb" onclick="doShare(\''+card.nm+'\',\''+d.c.replace(/'/g,"\\'")+'\',\''+d.o+'\')">📤 シェアする</button><button class="ragn '+(isA?'v':'t')+'" onclick="reset()">最初からやり直す</button>';show('p-res');}
 
 function toggleRec(el){const r=el.querySelector('.rrows');const t=el.querySelector('span:last-child');r.classList.toggle('open');t.textContent=r.classList.contains('open')?'▴':'▾';}
 function openMap(){window.open('https://maps.apple.com/?q='+encodeURIComponent('バー'),'_blank');}
@@ -479,6 +502,162 @@ function renderGalPairs(up, rev, mode){
 }
 
 function reset(){if(animId){cancelAnimationFrame(animId);animId=null;}mqs=0;ans=[];card=null;show('p-mode');}
+
+
+// === NATIVE BRIDGE ===
+// React Native からのメッセージ受信
+window.addEventListener('message', function(e) {
+  try {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'shake' && document.getElementById('p-draw').classList.contains('on') && !flipped) {
+      flipCard();
+    }
+    if (msg.type === 'favoritesData') { _favs = msg.data; renderFavScreen(); }
+    if (msg.type === 'historyData') { _hist = msg.data; renderHistScreen(); }
+    if (msg.type === 'favStatus') { _isFav = msg.data; updateFavBtn(); }
+  } catch(ex) {}
+});
+
+// RN にメッセージ送信
+function sendToRN(msg) {
+  if (window.ReactNativeWebView) {
+    window.ReactNativeWebView.postMessage(JSON.stringify(msg));
+  }
+}
+
+// === お気に入り & 履歴（ローカル版 — RNがなくても動作） ===
+var _favs = JSON.parse(localStorage.getItem('tc_favs') || '[]');
+var _hist = JSON.parse(localStorage.getItem('tc_hist') || '[]');
+var _isFav = false;
+
+function saveFavs() { try { localStorage.setItem('tc_favs', JSON.stringify(_favs)); } catch(e){} }
+function saveHist() { try { localStorage.setItem('tc_hist', JSON.stringify(_hist)); } catch(e){} }
+
+function addToFavorites() {
+  if (!card) return;
+  const d = (mode==='a'?card.a:card.na)[up?'u':'v'];
+  const orient = up ? '正位置' : '逆位置';
+  const exists = _favs.find(f => f.cn === card.n && f.m === mode && f.o === orient);
+  if (exists) return;
+  _favs.unshift({ cn: card.n, nm: card.nm, cc: d.c, i: d.i, m: mode, o: orient, t: Date.now() });
+  saveFavs();
+  _isFav = true;
+  updateFavBtn();
+  sendToRN({ type: 'saveFav', data: _favs });
+}
+
+function removeFromFavorites() {
+  if (!card) return;
+  const orient = up ? '正位置' : '逆位置';
+  _favs = _favs.filter(f => !(f.cn === card.n && f.m === mode && f.o === orient));
+  saveFavs();
+  _isFav = false;
+  updateFavBtn();
+  sendToRN({ type: 'saveFav', data: _favs });
+}
+
+function toggleFavorite() {
+  if (_isFav) removeFromFavorites();
+  else addToFavorites();
+}
+
+function checkFavStatus() {
+  if (!card) return;
+  const orient = up ? '正位置' : '逆位置';
+  _isFav = _favs.some(f => f.cn === card.n && f.m === mode && f.o === orient);
+  updateFavBtn();
+}
+
+function updateFavBtn() {
+  const btn = document.getElementById('favbtn');
+  if (btn) btn.textContent = _isFav ? '❤ お気に入りから削除' : '🤍 お気に入りに追加';
+}
+
+function addToHistory() {
+  if (!card) return;
+  const d = (mode==='a'?card.a:card.na)[up?'u':'v'];
+  const orient = up ? '正位置' : '逆位置';
+  _hist.unshift({ cn: card.n, nm: card.nm, cc: d.c, i: d.i, m: mode, o: orient, t: Date.now() });
+  if (_hist.length > 100) _hist = _hist.slice(0, 100);
+  saveHist();
+  sendToRN({ type: 'saveHist', data: _hist });
+}
+
+// === お気に入り画面 ===
+function showFavorites() {
+  renderFavScreen();
+  show('p-fav');
+}
+
+function renderFavScreen() {
+  const el = document.getElementById('fav-list');
+  if (!el) return;
+  if (_favs.length === 0) {
+    el.innerHTML = '<div style="color:rgba(240,237,232,0.4);text-align:center;padding:20px">まだお気に入りがありません</div>';
+    return;
+  }
+  el.innerHTML = _favs.map((f, i) =>
+    '<div class="hist-item" onclick="openFavDetail(' + i + ')">' +
+    '<span style="font-size:20px">' + f.i + '</span>' +
+    '<div style="flex:1"><div style="color:#f0ede8;font-size:13px;font-weight:500">' + f.nm + '（' + f.o + '）</div>' +
+    '<div style="color:rgba(240,237,232,0.5);font-size:11px">' + f.cc + '</div></div>' +
+    '<span style="font-size:10px;color:rgba(240,237,232,0.4)">' + (f.m==='a'?'🍸':'🌿') + '</span></div>'
+  ).join('');
+}
+
+function openFavDetail(i) {
+  const f = _favs[i];
+  if (!f) return;
+  card = C.find(c => c.n === f.cn);
+  if (!card) return;
+  mode = f.m;
+  up = f.o === '正位置';
+  _isFav = true;
+  showResult();
+}
+
+// === 履歴画面 ===
+function showHistory() {
+  renderHistScreen();
+  show('p-hist');
+}
+
+function renderHistScreen() {
+  const el = document.getElementById('hist-list');
+  if (!el) return;
+  if (_hist.length === 0) {
+    el.innerHTML = '<div style="color:rgba(240,237,232,0.4);text-align:center;padding:20px">まだ履歴がありません</div>';
+    return;
+  }
+  el.innerHTML = _hist.map((h, i) =>
+    '<div class="hist-item" onclick="openHistDetail(' + i + ')">' +
+    '<span style="font-size:20px">' + h.i + '</span>' +
+    '<div style="flex:1"><div style="color:#f0ede8;font-size:13px;font-weight:500">' + h.nm + '（' + h.o + '）</div>' +
+    '<div style="color:rgba(240,237,232,0.5);font-size:11px">' + h.cc + '</div></div>' +
+    '<span style="font-size:10px;color:rgba(240,237,232,0.4)">' + new Date(h.t).toLocaleDateString('ja-JP') + '</span></div>'
+  ).join('');
+}
+
+function openHistDetail(i) {
+  const h = _hist[i];
+  if (!h) return;
+  card = C.find(c => c.n === h.cn);
+  if (!card) return;
+  mode = h.m;
+  up = h.o === '正位置';
+  checkFavStatus();
+  showResult();
+}
+
+function clearAllHistory() {
+  if (confirm('全ての履歴を削除しますか？')) {
+    _hist = [];
+    saveHist();
+    renderHistScreen();
+    sendToRN({ type: 'saveHist', data: _hist });
+  }
+}
+
 </script>
 </body>
 </html>
