@@ -3,64 +3,123 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>利用規約 | Tarot & Cocktails</title>
+<title>Tarot & Cocktails — 利用規約 / Terms of Use</title>
 <style>
-body{font-family:-apple-system,sans-serif;max-width:720px;margin:0 auto;padding:2rem 1rem;color:#222;line-height:1.8}
-h1{font-size:1.5rem;border-bottom:1px solid #ddd;padding-bottom:.5rem}
-h2{font-size:1.2rem;margin-top:2rem}
-a{color:#0969da}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue','Hiragino Sans',sans-serif;background:#0a0a1a;color:#e8e6e0;min-height:100vh;display:flex;flex-direction:column}
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:.7rem 1.2rem;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.06)}
+.top-logo{font-size:.85rem;color:#fce890;font-weight:600;letter-spacing:1px;text-decoration:none}
+.top-logo span{font-size:16px;margin-right:4px}
+.lang-toggle{display:flex;gap:.5rem}
+.lang-btn{background:none;border:1px solid rgba(200,168,74,.3);color:#c8a84a;padding:4px 14px;border-radius:16px;font-size:12px;cursor:pointer;transition:all .2s}
+.lang-btn.active{background:rgba(200,168,74,.15);border-color:#c8a84a}
+.header{text-align:center;padding:2.5rem 1.5rem 1.5rem}
+.page-title{font-size:1.4rem;font-weight:600;color:#fce890}
+.page-sub{font-size:.8rem;color:rgba(255,255,255,.35);margin-top:.8rem}
+main{flex:1;max-width:680px;margin:0 auto;padding:0 1.5rem 2rem;width:100%}
+.section{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:1.3rem 1.5rem;margin-bottom:1rem}
+.section h3{font-size:.95rem;font-weight:600;color:#fce890;margin-bottom:.6rem}
+.section p{font-size:.85rem;line-height:1.85;color:rgba(255,255,255,.7)}
+.section a{color:#c8a84a}
+.nav-link{display:block;text-align:center;margin-top:1.5rem;color:#c8a84a;font-size:.85rem;text-decoration:none;padding:.8rem;border:1px solid rgba(200,168,74,.2);border-radius:12px;transition:all .2s}
+.nav-link:hover{background:rgba(200,168,74,.1);border-color:rgba(200,168,74,.4)}
+footer{text-align:center;padding:1.5rem;font-size:.7rem;color:rgba(255,255,255,.2);border-top:1px solid rgba(255,255,255,.06);line-height:1.8}
+[lang=en] .ja{display:none}[lang=ja] .en{display:none}
 </style>
 </head>
 <body>
-<h1>利用規約 / Terms of Use</h1>
-<p><strong>Tarot &amp; Cocktails</strong><br>最終更新日: 2026年5月30日</p>
+<div class="top-bar">
+<a href="index.html" class="top-logo"><span>🍸</span>Tarot & Cocktails</a>
+<div class="lang-toggle">
+<button class="lang-btn active" id="btn-ja" onclick="setLang('ja')">日本語</button>
+<button class="lang-btn" id="btn-en" onclick="setLang('en')">English</button>
+</div>
+</div>
 
-<h2>第1条（本規約の適用）</h2>
-<p>この利用規約は、Tarot &amp; Cocktails（以下「本アプリ」）の利用に関する条件を定めるものです。</p>
+<div class="header">
+<div class="page-title"><span class="ja">利用規約</span><span class="en">Terms of Use</span></div>
+<div class="page-sub"><span class="ja">最終更新日：2026年6月5日</span><span class="en">Last updated: June 2026</span></div>
+</div>
 
-<h2>第2条（サービスの内容）</h2>
-<p>本アプリは、タロットカードの大アルカナとカクテル・モクテルのペアリングを提案するエンターテインメントアプリです。占い・診断結果は娯楽目的であり、科学的根拠に基づくものではありません。</p>
+<main>
+<div class="section">
+<h3><span class="ja">第1条（本規約の適用）</span><span class="en">1. Application</span></h3>
+<p class="ja">この利用規約は、Tarot & Cocktails（以下「本アプリ」）の利用に関する条件を定めるものです。</p>
+<p class="en">These Terms of Use set forth the conditions for using Tarot & Cocktails (the "App").</p>
+</div>
 
-<h2>第3条（飲酒に関する注意事項）</h2>
-<p>1. 未成年者の飲酒は法律で禁止されています（日本国内においては20歳未満）。<br>
+<div class="section">
+<h3><span class="ja">第2条（サービスの内容）</span><span class="en">2. Service Description</span></h3>
+<p class="ja">本アプリは、タロットカードの大アルカナとカクテル・モクテルのペアリングを提案するエンターテインメントアプリです。占い・診断結果は娯楽目的であり、科学的根拠に基づくものではありません。</p>
+<p class="en">The App is an entertainment application that pairs Major Arcana tarot cards with cocktail and mocktail suggestions. Results are for entertainment purposes only and are not based on scientific evidence.</p>
+</div>
+
+<div class="section">
+<h3><span class="ja">第3条（飲酒に関する注意事項）</span><span class="en">3. Alcohol Disclaimer</span></h3>
+<p class="ja">1. 未成年者の飲酒は法律で禁止されています（日本国内においては20歳未満）。<br>
 2. 妊娠中・授乳中の飲酒はお控えください。<br>
 3. 飲酒運転は法律で禁止されています。<br>
 4. 適量を心がけてください。</p>
+<p class="en">Underage drinking is prohibited by law. Do not drink and drive. Pregnant or nursing individuals should avoid alcohol. Please drink responsibly. We assume no liability for any violations of local laws or regulations by the user.</p>
+</div>
 
-<h2>第4条（年齢制限）</h2>
-<p>本アプリは20歳以上の方を対象としています。ユーザーが本アプリをダウンロードまたは利用を開始した時点で、20歳以上であることを表明したものとみなします。</p>
+<div class="section">
+<h3><span class="ja">第4条（年齢制限）</span><span class="en">4. Age Restriction</span></h3>
+<p class="ja">本アプリは20歳以上の方を対象としています。ユーザーが本アプリをダウンロードまたは利用を開始した時点で、20歳以上であることを表明したものとみなします。</p>
+<p class="en">This app is intended for users aged 20 and older (in accordance with Japanese law). By downloading or using the App, you represent that you are at least 20 years old.</p>
+</div>
 
-<h2>第5条（レシピに関する免責事項）</h2>
-<p>1. レシピは参考情報です。<br>
+<div class="section">
+<h3><span class="ja">第5条（レシピに関する免責事項）</span><span class="en">5. Recipe Disclaimer</span></h3>
+<p class="ja">1. レシピは参考情報です。<br>
 2. 食物アレルギーをお持ちの方は、材料をご確認ください。<br>
 3. レシピの分量は目安です。バーテンダーや飲食店の判断が優先されます。<br>
 4. 本アプリのレシピに従って調製した飲料による健康被害について、開発者は一切の責任を負いません。<br>
 5. 本アプリは特定の飲食店において、掲載されているレシピの提供を義務付けたり、保証したりするものではありません。</p>
+<p class="en">Recipes are provided for reference only. Users with food allergies should review ingredients carefully. The developer assumes no responsibility for health issues arising from recipe preparation. The App does not guarantee that any establishment will serve the listed recipes.</p>
+</div>
 
-<h2>第6条（知的財産権および利用素材）</h2>
-<p>1. 本アプリのコンテンツに関する知的財産権は、開発者に帰属します。<br>
+<div class="section">
+<h3><span class="ja">第6条（知的財産権および利用素材）</span><span class="en">6. Intellectual Property & Assets</span></h3>
+<p class="ja">1. 本アプリのコンテンツに関する知的財産権は、開発者に帰属します。<br>
 2. ユーザーはSNSシェア機能を通じて結果画像を個人のSNSで共有できます。<br>
 3. 商用目的での複製・配布・改変を禁止します。<br>
 4. 本アプリ内のイラストの一部はAI技術を用いて生成されたものです。<br>
 5. 本アプリで使用しているタロットカードのイラストは、1909年に出版されたライダー・ウェイト版（Rider-Waite Tarot）に基づくものであり、パブリックドメインとして自由に利用可能な素材です。</p>
+<p class="en">All content is the intellectual property of the developer. Users may share results via the built-in sharing feature for personal use. Some illustrations are generated using AI technology. Tarot card images are based on the Rider-Waite 1909 deck (Public Domain).</p>
+</div>
 
-<h2>第7条（免責事項）</h2>
-<p>開発者は、本アプリの内容の正確性、完全性、有用性等について保証しません。</p>
+<div class="section">
+<h3><span class="ja">第7条（免責事項）</span><span class="en">7. Limitation of Liability</span></h3>
+<p class="ja">開発者は、本アプリの内容の正確性、完全性、有用性等について保証しません。</p>
+<p class="en">The developer makes no warranties regarding the accuracy, completeness, or usefulness of the App's content.</p>
+</div>
 
-<h2>第8条（準拠法）</h2>
-<p>本規約は日本法に準拠します。</p>
+<div class="section">
+<h3><span class="ja">第8条（準拠法）</span><span class="en">8. Governing Law</span></h3>
+<p class="ja">本規約は日本法に準拠します。</p>
+<p class="en">These terms are governed by the laws of Japan.</p>
+</div>
 
-<h2>お問い合わせ</h2>
-<p>メール: hi-mano@outlook.com</p>
+<div class="section">
+<h3><span class="ja">お問い合わせ</span><span class="en">Contact</span></h3>
+<p><a href="mailto:hi-mano@outlook.com">hi-mano@outlook.com</a></p>
+</div>
 
-<hr>
+<a href="privacy.html" class="nav-link"><span class="ja">→ プライバシーポリシーはこちら</span><span class="en">→ View Privacy Policy</span></a>
+</main>
 
-<h1>Terms of Use (English)</h1>
-<p>By using Tarot &amp; Cocktails, you agree to these Terms. This app is for entertainment only. This app is intended for users aged 20 and older (in accordance with Japanese law). Please drink responsibly. We assume no liability for any violations of local laws or regulations by the user.</p>
-<p>Some illustrations in this app are generated using AI technology.</p>
-<p>Tarot card images are based on the Rider-Waite 1909 deck (Public Domain).</p>
-<p>For inquiries: hi-mano@outlook.com</p>
+<footer>© 2026 Tarot & Cocktails. Tarot card images: Rider-Waite 1909 deck (Public Domain).</footer>
 
-<p style="margin-top:2rem"><a href="index.html">プライバシーポリシー / Privacy Policy →</a></p>
+<script>
+function setLang(l){
+  document.documentElement.lang=l;
+  document.getElementById('btn-ja').className='lang-btn'+(l==='ja'?' active':'');
+  document.getElementById('btn-en').className='lang-btn'+(l==='en'?' active':'');
+  localStorage.setItem('tc_lang',l);
+}
+var saved=localStorage.getItem('tc_lang');
+if(saved)setLang(saved);
+</script>
 </body>
 </html>
