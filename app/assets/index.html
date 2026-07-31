@@ -134,6 +134,13 @@ html,body{background:#08091a;font-family:-apple-system,BlinkMacSystemFont,'Segoe
 .rrow:last-child{border-bottom:none}.rrow span{color:var(--text2)}
 .mpb{width:100%;padding:11px;border-radius:var(--r2);border:0.5px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);font-size:13px;cursor:pointer;color:var(--text);display:flex;align-items:center;justify-content:center;gap:7px;transition:background .15s}
 .mpb:hover{background:rgba(255,255,255,.1)}
+.ph-map{justify-content:flex-start;padding:0;gap:0;height:100vh;min-height:100vh}
+.map-head{width:100%;padding:calc(12px + env(safe-area-inset-top)) 16px 10px;display:flex;align-items:center;justify-content:center;background:rgba(8,9,26,.9)}
+#mapkit-container{width:100%;flex:1 1 auto;min-height:0;background:#0d0f22}
+.map-actions{width:100%;padding:12px 16px calc(14px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px;background:rgba(8,9,26,.92)}
+.bar-detail{width:100%;padding:12px 16px;background:rgba(20,17,45,.96);border-top:0.5px solid rgba(200,168,74,.3)}
+.bar-detail-name{color:#fce890;font-size:15px;font-weight:600}
+.bar-detail-addr{color:rgba(240,237,232,.6);font-size:12px;margin:4px 0 10px}
 .ragn{width:100%;padding:12px;border-radius:var(--r2);border:none;font-size:13px;font-weight:600;cursor:pointer;color:#fff;letter-spacing:.3px;transition:all .2s}
 .ragn.v{background:var(--btn-a-bg);box-shadow:var(--btn-a-sh)}.ragn.t{background:var(--btn-n-bg);box-shadow:var(--btn-n-sh)}
 .lbl{font-size:10px;letter-spacing:2px;color:rgba(200,168,74,.5);text-transform:uppercase}
@@ -228,12 +235,44 @@ html,body{background:#08091a;font-family:-apple-system,BlinkMacSystemFont,'Segoe
 <button class="menu-btn" onclick="show('p-mode')" style="margin-top:8px">← 戻る</button>
 </div>
 
+<!-- MAP -->
+<div class="ph ph-map" id="p-map">
+<div class="map-head"><div class="lbl" style="margin:0">📍 近くのバー</div></div>
+<div id="mapkit-container"></div>
+<div id="bar-detail" class="bar-detail" style="display:none">
+<div class="bar-detail-name" id="bar-detail-name"></div>
+<div class="bar-detail-addr" id="bar-detail-addr"></div>
+<button class="mpb" id="bar-fav-btn" onclick="toggleBarFav()">🤍 このバーをお気に入りに追加</button>
+</div>
+<div class="map-actions">
+<button class="mpb" onclick="searchNearbyBars()">🔍 この地点でバーを再検索</button>
+<button class="menu-btn" id="map-favjump" onclick="jumpToFavBars()">⭐ お気に入りバーを表示</button>
+<button class="menu-btn" onclick="closeMap()">← 戻る</button>
+</div>
+</div>
+
 <!-- RESULT -->
 <div class="ph" id="p-res"><div class="rw" id="rw"></div></div>
 
 </div>
 
 <script>
+
+// ============================================================
+// MapKit JS 設定
+// ------------------------------------------------------------
+// Apple Developer で作成した「Maps ID」用の秘密鍵で署名した
+// 長期有効の JWT トークンを下の MAPKIT_TOKEN に貼り付ける。
+//   ・空文字のままなら従来どおり外部 Apple Maps を開くフォールバック動作。
+//   ・トークンには exp(有効期限) が含まれる。期限が切れたら再発行して
+//     このアプリを再ビルド／再申請する必要がある。
+//   ・将来サーバー方式にする場合は getMapkitToken() を fetch に差し替えるだけ。
+// ============================================================
+var MAPKIT_TOKEN = '';
+function getMapkitToken(done){
+  // サーバー方式にするときはここで短命トークンを fetch して done(token) を呼ぶ。
+  done(MAPKIT_TOKEN);
+}
 
 const C=[
 {n:0,nm:"愚者",en:"The Fool",s:"🌀",k:"自由・冒険・始まり",rom:"0",bg1:"#2d1a6b",bg2:"#080818",
@@ -450,7 +489,14 @@ function spawnDrop(){const d=document.createElementNS('http://www.w3.org/2000/sv
 function showResult(){addToHistory();checkFavStatus();const d=(mode==='a'?card.a:card.na)[up?'u':'v'];const isA=mode==='a';const stars=['','★','★★'];const shareText='今夜、'+card.nm+'に選ばれた。\n一杯は '+d.c+'。\n\n#TarotAndCocktails #今夜の一杯 #タロット占い';document.getElementById('rw').innerHTML='<div class="rbadge '+(isA?'v':'t')+'">'+(isA?'🍸 カクテル':'🌿 モクテル')+'</div><div class="rpair '+(isA?'v':'t')+'">'+card.s+' '+card.nm+' × '+d.c+'</div><div class="rhero"><div class="ricon">'+d.i+'</div><div class="rname">'+d.c+'</div><div class="rorient '+(up?'ppu':'ppr')+'">'+d.o+' — '+(d.nt||'')+'</div><div class="rstory">'+d.st+'</div>'+(!isA&&d.h?'<div class="rherb">🌿 '+d.h+'</div>':'')+(isA&&d.d?'<div class="rdiff"><span class="'+(d.d===1?'d1':'d2')+'">'+stars[d.d]+'</span><span>'+d.dl+'</span>'+(ABV[d.c]?'<span class="abv">'+ABV[d.c]+'</span>':'')+'</div>':'')+'</div><div class="rrec" onclick="toggleRec(this)"><div class="rrect">レシピを見る<span>▾</span></div><div class="rrows">'+d.r.map(x=>'<div class="rrow">'+x[0]+'<span>'+x[1]+'</span></div>').join('')+'</div></div><button class="mpb" id="favbtn" onclick="toggleFavorite()" class="favbtn">🤍 お気に入りに追加</button><button class="mpb" onclick="openMap()">📍 近くのバーを探す →</button><button class="mpb" onclick="doShare(\''+card.nm+'\',\''+d.c.replace(/'/g,"\\'")+'\',\''+d.o+'\')">📤 シェアする</button><button class="ragn '+(isA?'v':'t')+'" onclick="reset()">最初からやり直す</button>';show('p-res');}
 
 function toggleRec(el){const r=el.querySelector('.rrows');const t=el.querySelector('span:last-child');r.classList.toggle('open');t.textContent=r.classList.contains('open')?'▴':'▾';}
-function openMap(){window.open('https://maps.apple.com/?q='+encodeURIComponent('バー'),'_blank');}
+function openMap(){
+  _mapReturn = document.getElementById('p-res').classList.contains('on') ? 'p-res' : 'p-mode';
+  // トークン未設定 → 従来どおり外部 Apple Maps を開く
+  if(!MAPKIT_TOKEN){ window.open('https://maps.apple.com/?q='+encodeURIComponent('バー'),'_blank'); return; }
+  hideBarDetail();
+  show('p-map');
+  initMapkit();
+}
 function doShare(cardName,cocktailName,orient){const text='今夜、'+cardName+'（'+orient+'）に選ばれた。\n一杯は '+cocktailName+'。\n\n#TarotAndCocktails #今夜の一杯 #タロット占い';if(window.ReactNativeWebView){window.ReactNativeWebView.postMessage(JSON.stringify({type:'share',text:text}));}else if(navigator.share){navigator.share({title:'Tarot & Cocktails',text:text}).catch(()=>{});}else if(navigator.clipboard){navigator.clipboard.writeText(text).then(()=>alert('テキストをコピーしました！SNSに貼り付けてシェアしてね'));}}
 
 
@@ -684,6 +730,176 @@ function clearAllHistory() {
     renderHistScreen();
     sendToRN({ type: 'saveHist', data: _hist });
   }
+}
+
+
+// ============================================================
+// === MapKit JS（アプリ内マップ + バーのお気に入り） ===
+// ============================================================
+var DEFAULT_COORD = { lat: 35.6812, lng: 139.7671 }; // 東京駅（位置情報が取れない時のフォールバック）
+var _mapReturn = 'p-mode';
+var _mapkitLoaded = false, _mapkitLoading = false, _map = null;
+var _barSearch = null, _barAnnotations = [], _favBarAnnotations = [];
+var _selectedBar = null;
+var _barFavs = JSON.parse(localStorage.getItem('tc_bar_favs') || '[]');
+
+function saveBarFavs(){ try{ localStorage.setItem('tc_bar_favs', JSON.stringify(_barFavs)); }catch(e){} }
+
+function closeMap(){ hideBarDetail(); show(_mapReturn); }
+
+function mapFallback(msg){
+  try{ if(msg) alert(msg); }catch(e){}
+  window.open('https://maps.apple.com/?q='+encodeURIComponent('バー'),'_blank');
+  show(_mapReturn);
+}
+
+// MapKit JS ライブラリを CDN から読み込む
+function loadMapkitScript(cb){
+  if(_mapkitLoaded && window.mapkit){ cb(); return; }
+  var waiter = function(){ if(_mapkitLoaded && window.mapkit){ cb(); } else { setTimeout(waiter, 150); } };
+  if(_mapkitLoading){ waiter(); return; }
+  _mapkitLoading = true;
+  var s = document.createElement('script');
+  s.src = 'https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js';
+  s.crossOrigin = 'anonymous';
+  s.setAttribute('data-libraries', 'map,annotations,services,user-location');
+  s.onload = function(){ _mapkitLoaded = true; cb(); };
+  s.onerror = function(){ _mapkitLoading = false; cb('error'); };
+  document.head.appendChild(s);
+}
+
+function initMapkit(){
+  // 既に初期化済みなら、お気に入りピンを更新して再検索するだけ
+  if(_map){
+    renderBarFavAnnotations();
+    setTimeout(locateAndSearch, 60);
+    return;
+  }
+  loadMapkitScript(function(err){
+    if(err || !window.mapkit){ mapFallback('地図の読み込みに失敗しました。外部の地図を開きます。'); return; }
+    try{
+      mapkit.init({
+        authorizationCallback: function(done){ getMapkitToken(done); },
+        language: 'ja'
+      });
+      // コンテナのレイアウト確定後に生成
+      setTimeout(function(){
+        try{
+          _map = new mapkit.Map('mapkit-container', {
+            showsUserLocationControl: true,
+            showsCompass: mapkit.FeatureVisibility.Hidden,
+            showsScale: mapkit.FeatureVisibility.Hidden,
+            colorScheme: mapkit.Map.ColorSchemes.Dark
+          });
+          _map.showsUserLocation = true;
+          _map.region = new mapkit.CoordinateRegion(
+            new mapkit.Coordinate(DEFAULT_COORD.lat, DEFAULT_COORD.lng),
+            new mapkit.CoordinateSpan(0.05, 0.05)
+          );
+          renderBarFavAnnotations();
+          locateAndSearch();
+        }catch(e){ mapFallback('地図の初期化に失敗しました。外部の地図を開きます。'); }
+      }, 80);
+    }catch(e){ mapFallback('地図の初期化に失敗しました。外部の地図を開きます。'); }
+  });
+}
+
+// 現在地へ移動してから周辺のバーを検索
+function locateAndSearch(){
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(function(pos){
+      var c = new mapkit.Coordinate(pos.coords.latitude, pos.coords.longitude);
+      _map.setRegionAnimated(new mapkit.CoordinateRegion(c, new mapkit.CoordinateSpan(0.02, 0.02)));
+      searchNearbyBars(c);
+    }, function(){
+      searchNearbyBars(); // 取得失敗 → 現在の地図中心で検索
+    }, { enableHighAccuracy:true, timeout:8000, maximumAge:60000 });
+  } else {
+    searchNearbyBars();
+  }
+}
+
+// 周辺のバーを検索して通常ピンで表示
+function searchNearbyBars(coord){
+  if(!_map || !window.mapkit) return;
+  if(!_barSearch) _barSearch = new mapkit.Search({ getsUserLocation:true, language:'ja' });
+  var center = coord || _map.center;
+  var region = new mapkit.CoordinateRegion(center, new mapkit.CoordinateSpan(0.03, 0.03));
+  _barSearch.search('バー', function(error, data){
+    if(error || !data || !data.places || !data.places.length) return;
+    if(_barAnnotations.length){ _map.removeAnnotations(_barAnnotations); }
+    _barAnnotations = data.places.slice(0, 25).map(function(p){
+      var info = { name:p.name, addr:(p.formattedAddress||''), lat:p.coordinate.latitude, lng:p.coordinate.longitude };
+      var a = new mapkit.MarkerAnnotation(p.coordinate, {
+        title:p.name, subtitle:info.addr, color:'#7F77DD', glyphText:'🍸'
+      });
+      a.barInfo = info;
+      a.addEventListener('select', function(){ onBarSelect(info); });
+      return a;
+    });
+    _map.addAnnotations(_barAnnotations);
+  }, { region: region });
+}
+
+// お気に入りバーをゴールドピンで表示（常に優先表示）
+function renderBarFavAnnotations(){
+  if(!_map || !window.mapkit) return;
+  if(_favBarAnnotations.length){ _map.removeAnnotations(_favBarAnnotations); }
+  _favBarAnnotations = _barFavs.map(function(b){
+    var a = new mapkit.MarkerAnnotation(new mapkit.Coordinate(b.lat, b.lng), {
+      title:b.name, subtitle:(b.addr||''), color:'#c8a84a', glyphText:'⭐'
+    });
+    a.barInfo = b;
+    a.addEventListener('select', function(){ onBarSelect(b); });
+    return a;
+  });
+  if(_favBarAnnotations.length){ _map.addAnnotations(_favBarAnnotations); }
+}
+
+// お気に入りバーが画面に収まるようズーム
+function jumpToFavBars(){
+  if(!_map || !window.mapkit) return;
+  if(!_barFavs.length){ alert('まだお気に入りのバーがありません。ピンをタップして⭐で登録できます。'); return; }
+  if(_barFavs.length === 1){
+    _map.setRegionAnimated(new mapkit.CoordinateRegion(
+      new mapkit.Coordinate(_barFavs[0].lat, _barFavs[0].lng),
+      new mapkit.CoordinateSpan(0.02, 0.02)
+    ));
+  } else if(_favBarAnnotations.length){
+    _map.showItems(_favBarAnnotations, { animate:true, padding:new mapkit.Padding(60,60,60,60) });
+  }
+}
+
+// バー選択時の詳細パネル
+function onBarSelect(info){
+  _selectedBar = info;
+  document.getElementById('bar-detail-name').textContent = info.name || 'バー';
+  document.getElementById('bar-detail-addr').textContent = info.addr || '';
+  document.getElementById('bar-detail').style.display = 'block';
+  updateBarFavBtn();
+}
+function hideBarDetail(){ var d=document.getElementById('bar-detail'); if(d) d.style.display='none'; _selectedBar=null; }
+
+function barKey(b){ return (b.name||'') + '|' + Math.round(b.lat*1e5) + '|' + Math.round(b.lng*1e5); }
+function isBarFav(b){ return _barFavs.some(function(f){ return barKey(f)===barKey(b); }); }
+
+function updateBarFavBtn(){
+  var btn = document.getElementById('bar-fav-btn');
+  if(!btn || !_selectedBar) return;
+  btn.textContent = isBarFav(_selectedBar) ? '❤ お気に入りから削除' : '🤍 このバーをお気に入りに追加';
+}
+
+function toggleBarFav(){
+  if(!_selectedBar) return;
+  if(isBarFav(_selectedBar)){
+    _barFavs = _barFavs.filter(function(f){ return barKey(f)!==barKey(_selectedBar); });
+  } else {
+    _barFavs.unshift({ name:_selectedBar.name, addr:_selectedBar.addr||'', lat:_selectedBar.lat, lng:_selectedBar.lng, t:Date.now() });
+  }
+  saveBarFavs();
+  renderBarFavAnnotations();
+  updateBarFavBtn();
+  sendToRN({ type:'saveBarFav', data:_barFavs });
 }
 
 </script>

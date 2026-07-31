@@ -16,7 +16,8 @@
       "bundleIdentifier": "app.tarotcocktails",
 "buildNumber": "4",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "近くのバーを地図に表示するために現在地を使用します。"
       }
     },
     "extra": {
