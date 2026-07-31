@@ -259,19 +259,40 @@ html,body{background:#08091a;font-family:-apple-system,BlinkMacSystemFont,'Segoe
 <script>
 
 // ============================================================
-// MapKit JS 設定
+// MapKit JS 設定（Cloudflare Worker トークン方式）
 // ------------------------------------------------------------
-// Apple Developer で作成した「Maps ID」用の秘密鍵で署名した
-// 長期有効の JWT トークンを下の MAPKIT_TOKEN に貼り付ける。
+// デプロイした Worker の URL を MAPKIT_TOKEN_URL に設定する。
 //   ・空文字のままなら従来どおり外部 Apple Maps を開くフォールバック動作。
-//   ・トークンには exp(有効期限) が含まれる。期限が切れたら再発行して
-//     このアプリを再ビルド／再申請する必要がある。
-//   ・将来サーバー方式にする場合は getMapkitToken() を fetch に差し替えるだけ。
+//   ・秘密鍵は Worker(Cloudflare) 側だけにあり、このアプリには一切含まれない。
+//   ・トークンは毎回 Worker から取得するので手動更新・再ビルド不要。
+//   ・取得失敗時は自動で外部 Apple Maps にフォールバックする。
 // ============================================================
-var MAPKIT_TOKEN = '';
+var MAPKIT_TOKEN_URL = ''; // 例: 'https://tarot-mapkit-token.xxxx.workers.dev/'
+var _tokenCache = { token: '', exp: 0 };
+
 function getMapkitToken(done){
-  // サーバー方式にするときはここで短命トークンを fetch して done(token) を呼ぶ。
-  done(MAPKIT_TOKEN);
+  if(!MAPKIT_TOKEN_URL){ done(''); return; }
+  var nowSec = Math.floor(Date.now()/1000);
+  // 有効なキャッシュがあれば再利用（失効60秒前から取り直し）
+  if(_tokenCache.token && _tokenCache.exp - 60 > nowSec){ done(_tokenCache.token); return; }
+  fetch(MAPKIT_TOKEN_URL, { cache:'no-store' })
+    .then(function(r){ if(!r.ok) throw new Error('http '+r.status); return r.text(); })
+    .then(function(t){
+      t = (t||'').trim();
+      if(!t || t.indexOf('.') < 0) throw new Error('bad token');
+      _tokenCache.token = t;
+      _tokenCache.exp = _parseJwtExp(t) || (nowSec + 1500);
+      done(t);
+    })
+    .catch(function(){ done(''); }); // 失敗 → 空を返して外部マップにフォールバック
+}
+
+function _parseJwtExp(t){
+  try{
+    var p = t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+    var pad = p.length % 4; if(pad) p += '===='.slice(pad);
+    return (JSON.parse(atob(p)).exp) || 0;
+  }catch(e){ return 0; }
 }
 
 const C=[
@@ -491,11 +512,15 @@ function showResult(){addToHistory();checkFavStatus();const d=(mode==='a'?card.a
 function toggleRec(el){const r=el.querySelector('.rrows');const t=el.querySelector('span:last-child');r.classList.toggle('open');t.textContent=r.classList.contains('open')?'▴':'▾';}
 function openMap(){
   _mapReturn = document.getElementById('p-res').classList.contains('on') ? 'p-res' : 'p-mode';
-  // トークン未設定 → 従来どおり外部 Apple Maps を開く
-  if(!MAPKIT_TOKEN){ window.open('https://maps.apple.com/?q='+encodeURIComponent('バー'),'_blank'); return; }
+  // URL未設定 → 従来どおり外部 Apple Maps を開く
+  if(!MAPKIT_TOKEN_URL){ window.open('https://maps.apple.com/?q='+encodeURIComponent('バー'),'_blank'); return; }
   hideBarDetail();
-  show('p-map');
-  initMapkit();
+  // 先にトークンを取得。取れなければ外部 Apple Maps にフォールバック。
+  getMapkitToken(function(tok){
+    if(!tok){ window.open('https://maps.apple.com/?q='+encodeURIComponent('バー'),'_blank'); return; }
+    show('p-map');
+    initMapkit();
+  });
 }
 function doShare(cardName,cocktailName,orient){const text='今夜、'+cardName+'（'+orient+'）に選ばれた。\n一杯は '+cocktailName+'。\n\n#TarotAndCocktails #今夜の一杯 #タロット占い';if(window.ReactNativeWebView){window.ReactNativeWebView.postMessage(JSON.stringify({type:'share',text:text}));}else if(navigator.share){navigator.share({title:'Tarot & Cocktails',text:text}).catch(()=>{});}else if(navigator.clipboard){navigator.clipboard.writeText(text).then(()=>alert('テキストをコピーしました！SNSに貼り付けてシェアしてね'));}}
 

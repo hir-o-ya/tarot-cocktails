@@ -1,0 +1,15 @@
+# Cloudflare Worker 設定
+# デプロイ前に KEY_ID / TEAM_ID を自分の値に置き換える。
+# 秘密鍵(MAPKIT_PRIVATE_KEY)はここには書かず、必ず secret で登録する:
+#   npx wrangler secret put MAPKIT_PRIVATE_KEY
+
+name = "tarot-mapkit-token"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+[vars]
+# Key ID / Team ID は「識別子」で秘密鍵ではないが、公開したくなければ
+# ここを消して `wrangler secret put` で入れてもよい。
+MAPKIT_KEY_ID = "XXXXXXXXXX"
+MAPKIT_TEAM_ID = "YYYYYYYYYY"
+TOKEN_TTL_SECONDS = "1800"
