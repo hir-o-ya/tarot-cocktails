@@ -146,6 +146,8 @@ html,body{background:#08091a;font-family:-apple-system,BlinkMacSystemFont,'Segoe
 .bar-row-name{color:#f0ede8;font-size:13px}
 #bar-multi-title{margin-bottom:6px}
 #bar-multi-list{max-height:200px;overflow-y:auto}
+.bar-input{width:100%;padding:9px 10px;margin-bottom:8px;border-radius:8px;border:0.5px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#f0ede8;font-size:13px}
+.bar-input::placeholder{color:rgba(240,237,232,.4)}
 .ragn{width:100%;padding:12px;border-radius:var(--r2);border:none;font-size:13px;font-weight:600;cursor:pointer;color:#fff;letter-spacing:.3px;transition:all .2s}
 .ragn.v{background:var(--btn-a-bg);box-shadow:var(--btn-a-sh)}.ragn.t{background:var(--btn-n-bg);box-shadow:var(--btn-n-sh)}
 .lbl{font-size:10px;letter-spacing:2px;color:rgba(200,168,74,.5);text-transform:uppercase}
@@ -256,8 +258,19 @@ html,body{background:#08091a;font-family:-apple-system,BlinkMacSystemFont,'Segoe
 <div id="bar-multi-list"></div>
 </div>
 </div>
+<div id="bar-add" class="bar-detail" style="display:none">
+<div class="bar-detail-name">＋ バーを手動で追加</div>
+<input id="bar-add-name" class="bar-input" type="text" placeholder="店名（例: ブルー）" oninput="updateAddSaveBtn()" />
+<input id="bar-add-addr" class="bar-input" type="text" placeholder="住所（例: 渋谷区恵比寿1-12-5）" />
+<button class="menu-btn" onclick="geocodeBarAddress()">📍 この住所で位置を確定</button>
+<div class="bar-detail-addr" id="bar-add-status" style="margin-top:8px">位置: 未設定</div>
+<div class="bar-detail-addr" style="margin:0 0 8px">または地図を直接タップして位置を指定</div>
+<button class="mpb" id="bar-add-save" onclick="saveManualBar()">保存</button>
+<button class="menu-btn" onclick="closeAddBar()">キャンセル</button>
+</div>
 <div class="map-actions">
 <button class="mpb" onclick="searchNearbyBars()">🔍 この地点でバーを再検索</button>
+<button class="menu-btn" onclick="openAddBar()">＋ バーを手動で追加</button>
 <button class="menu-btn" id="map-favjump" onclick="jumpToFavBars()">⭐ お気に入りバーを表示</button>
 <button class="menu-btn" onclick="closeMap()">← 戻る</button>
 </div>
@@ -794,6 +807,7 @@ var _mapkitLoaded = false, _mapkitLoading = false, _map = null;
 var _barSearch = null, _barAnnotations = [], _favBarAnnotations = [];
 var _selectedBar = null;
 var _mapMode = 'nearby'; // 'nearby' = 周辺検索, 'favonly' = お気に入りバーのみ
+var _addMode = false, _pendingCoord = null, _pendingAnnotation = null, _geocoder = null;
 var _barFavs = JSON.parse(localStorage.getItem('tc_bar_favs') || '[]');
 
 function saveBarFavs(){ try{ localStorage.setItem('tc_bar_favs', JSON.stringify(_barFavs)); }catch(e){} }
@@ -872,6 +886,8 @@ function initMapkit(){
             ann.addEventListener('select', function(){ onClusterSelect(c); });
             return ann;
           };
+          // 手動追加モード時、地図タップで位置を指定
+          _map.addEventListener('single-tap', onMapTap);
           _map.region = new mapkit.CoordinateRegion(
             new mapkit.Coordinate(DEFAULT_COORD.lat, DEFAULT_COORD.lng),
             new mapkit.CoordinateSpan(0.05, 0.05)
@@ -1026,6 +1042,91 @@ function toggleBarFav(){
   renderBarFavAnnotations();
   updateBarFavBtn();
   sendToRN({ type:'saveBarFav', data:_barFavs });
+}
+
+// === バーの手動追加（データに無い行きつけの店を登録） ===
+function openAddBar(){
+  if(!_map){ return; }
+  hideBarDetail();
+  _addMode = true;
+  _pendingCoord = null;
+  if(_pendingAnnotation){ _map.removeAnnotation(_pendingAnnotation); _pendingAnnotation = null; }
+  document.getElementById('bar-add-name').value = '';
+  document.getElementById('bar-add-addr').value = '';
+  document.getElementById('bar-add-status').textContent = '位置: 未設定';
+  document.getElementById('bar-add').style.display = 'block';
+  updateAddSaveBtn();
+}
+
+function closeAddBar(){
+  _addMode = false;
+  if(_pendingAnnotation){ _map.removeAnnotation(_pendingAnnotation); _pendingAnnotation = null; }
+  _pendingCoord = null;
+  document.getElementById('bar-add').style.display = 'none';
+}
+
+// 追加する位置を確定（住所ジオコーディング / 地図タップ 共通）
+function setPendingCoord(lat, lng){
+  _pendingCoord = { lat:lat, lng:lng };
+  if(_pendingAnnotation){ _map.removeAnnotation(_pendingAnnotation); }
+  _pendingAnnotation = new mapkit.MarkerAnnotation(new mapkit.Coordinate(lat, lng), {
+    color:'#E05555', glyphText:'＋', title:'追加する位置'
+  });
+  _map.addAnnotation(_pendingAnnotation);
+  document.getElementById('bar-add-status').textContent = '位置: 設定済み ✓';
+  updateAddSaveBtn();
+}
+
+// 地図タップ（手動追加モード時のみ位置指定）
+function onMapTap(event){
+  if(!_addMode || !_map || !event || !event.pointOnPage) return;
+  try{
+    var p = event.pointOnPage;
+    // convertPointOnPageToCoordinate は DOMPoint を要求するため必ず包む
+    var domPt = (typeof DOMPoint !== 'undefined') ? new DOMPoint(p.x, p.y) : p;
+    var c = _map.convertPointOnPageToCoordinate(domPt);
+    _map.setCenterAnimated(c);
+    setPendingCoord(c.latitude, c.longitude);
+  }catch(e){}
+}
+
+// 住所から位置を確定
+function geocodeBarAddress(){
+  var addr = document.getElementById('bar-add-addr').value.trim();
+  if(!addr){ alert('住所を入力してください'); return; }
+  if(!window.mapkit){ return; }
+  if(!_geocoder) _geocoder = new mapkit.Geocoder({ language:'ja', getsUserLocation:false });
+  _geocoder.lookup(addr, function(error, data){
+    if(error || !data || !data.results || !data.results.length){ alert('住所が見つかりませんでした。地図を直接タップして位置を指定してください。'); return; }
+    var c = data.results[0].coordinate;
+    _map.setCenterAnimated(c);
+    setPendingCoord(c.latitude, c.longitude);
+  });
+}
+
+function updateAddSaveBtn(){
+  var btn = document.getElementById('bar-add-save');
+  if(!btn) return;
+  var nameEl = document.getElementById('bar-add-name');
+  var ok = nameEl && nameEl.value.trim() && _pendingCoord;
+  btn.disabled = !ok;
+  btn.style.opacity = ok ? '1' : '0.5';
+}
+
+function saveManualBar(){
+  var name = document.getElementById('bar-add-name').value.trim();
+  if(!name){ alert('店名を入力してください'); return; }
+  if(!_pendingCoord){ alert('位置を指定してください（住所検索 または 地図タップ）'); return; }
+  var addr = document.getElementById('bar-add-addr').value.trim();
+  var lat = _pendingCoord.lat, lng = _pendingCoord.lng;
+  _barFavs.unshift({ name:name, addr:addr, lat:lat, lng:lng, t:Date.now() });
+  saveBarFavs();
+  sendToRN({ type:'saveBarFav', data:_barFavs });
+  closeAddBar();
+  renderBarFavAnnotations();
+  _map.setRegionAnimated(new mapkit.CoordinateRegion(
+    new mapkit.Coordinate(lat, lng), new mapkit.CoordinateSpan(0.01, 0.01)
+  ));
 }
 
 </script>
