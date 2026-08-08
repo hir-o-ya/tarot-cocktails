@@ -167,6 +167,7 @@ html,body{background:#08091a;font-family:-apple-system,BlinkMacSystemFont,'Segoe
 <button class="sbtn v" id="stbtn" onclick="goMood()">今夜の一杯を探す →</button>
 <button class="menu-btn" id="galbtn" onclick="showGallery()">📖 カード図鑑（全22枚）</button>
 <button class="menu-btn" onclick="showFavorites()">❤ お気に入り</button>
+<button class="menu-btn" onclick="openFavBarsMap()">🍸 お気に入りバーの地図</button>
 <button class="menu-btn" onclick="showHistory()">📜 履歴</button>
 </div>
 
@@ -512,12 +513,27 @@ function showResult(){addToHistory();checkFavStatus();const d=(mode==='a'?card.a
 function toggleRec(el){const r=el.querySelector('.rrows');const t=el.querySelector('span:last-child');r.classList.toggle('open');t.textContent=r.classList.contains('open')?'▴':'▾';}
 function openMap(){
   _mapReturn = document.getElementById('p-res').classList.contains('on') ? 'p-res' : 'p-mode';
+  _mapMode = 'nearby';
   // URL未設定 → 従来どおり外部 Apple Maps を開く
   if(!MAPKIT_TOKEN_URL){ window.open('https://maps.apple.com/?q='+encodeURIComponent('バー'),'_blank'); return; }
   hideBarDetail();
   // 先にトークンを取得。取れなければ外部 Apple Maps にフォールバック。
   getMapkitToken(function(tok){
     if(!tok){ window.open('https://maps.apple.com/?q='+encodeURIComponent('バー'),'_blank'); return; }
+    show('p-map');
+    initMapkit();
+  });
+}
+
+// トップメニュー用: お気に入りバーだけを表示する地図
+function openFavBarsMap(){
+  _mapReturn = 'p-mode';
+  if(!_barFavs.length){ alert('まだお気に入りのバーがありません。「近くのバーを探す」からピンをタップして⭐で登録してください。'); return; }
+  if(!MAPKIT_TOKEN_URL){ alert('地図を利用できません。'); return; }
+  _mapMode = 'favonly';
+  hideBarDetail();
+  getMapkitToken(function(tok){
+    if(!tok){ alert('地図トークンを取得できませんでした。'); return; }
     show('p-map');
     initMapkit();
   });
@@ -766,6 +782,7 @@ var _mapReturn = 'p-mode';
 var _mapkitLoaded = false, _mapkitLoading = false, _map = null;
 var _barSearch = null, _barAnnotations = [], _favBarAnnotations = [];
 var _selectedBar = null;
+var _mapMode = 'nearby'; // 'nearby' = 周辺検索, 'favonly' = お気に入りバーのみ
 var _barFavs = JSON.parse(localStorage.getItem('tc_bar_favs') || '[]');
 
 function saveBarFavs(){ try{ localStorage.setItem('tc_bar_favs', JSON.stringify(_barFavs)); }catch(e){} }
@@ -793,11 +810,26 @@ function loadMapkitScript(cb){
   document.head.appendChild(s);
 }
 
+// モード（近く/お気に入りのみ）に応じてヘッダーと表示内容を切り替え
+function applyMapMode(){
+  if(!_map) return;
+  var lbl = document.querySelector('#p-map .map-head .lbl');
+  renderBarFavAnnotations();
+  if(_mapMode === 'favonly'){
+    if(lbl) lbl.textContent = '⭐ お気に入りバー';
+    // 周辺(紫)ピンは消してお気に入りだけにする
+    if(_barAnnotations.length){ _map.removeAnnotations(_barAnnotations); _barAnnotations = []; }
+    jumpToFavBars();
+  } else {
+    if(lbl) lbl.textContent = '📍 近くのバー';
+    locateAndSearch();
+  }
+}
+
 function initMapkit(){
-  // 既に初期化済みなら、お気に入りピンを更新して再検索するだけ
+  // 既に初期化済みなら、モードに応じて表示を更新するだけ
   if(_map){
-    renderBarFavAnnotations();
-    setTimeout(locateAndSearch, 60);
+    setTimeout(applyMapMode, 60);
     return;
   }
   loadMapkitScript(function(err){
@@ -821,8 +853,7 @@ function initMapkit(){
             new mapkit.Coordinate(DEFAULT_COORD.lat, DEFAULT_COORD.lng),
             new mapkit.CoordinateSpan(0.05, 0.05)
           );
-          renderBarFavAnnotations();
-          locateAndSearch();
+          applyMapMode();
         }catch(e){ mapFallback('地図の初期化に失敗しました。外部の地図を開きます。'); }
       }, 80);
     }catch(e){ mapFallback('地図の初期化に失敗しました。外部の地図を開きます。'); }
@@ -844,26 +875,49 @@ function locateAndSearch(){
   }
 }
 
-// 周辺のバーを検索して通常ピンで表示
+// 周辺のバーをカテゴリ検索して通常ピンで表示
+// （キーワード検索より網羅的。Apple Maps 相当のPOIが出る）
 function searchNearbyBars(coord){
   if(!_map || !window.mapkit) return;
-  if(!_barSearch) _barSearch = new mapkit.Search({ getsUserLocation:true, language:'ja' });
   var center = coord || _map.center;
   var region = new mapkit.CoordinateRegion(center, new mapkit.CoordinateSpan(0.03, 0.03));
-  _barSearch.search('バー', function(error, data){
+
+  var handle = function(error, data){
     if(error || !data || !data.places || !data.places.length) return;
     if(_barAnnotations.length){ _map.removeAnnotations(_barAnnotations); }
-    _barAnnotations = data.places.slice(0, 25).map(function(p){
-      var info = { name:p.name, addr:(p.formattedAddress||''), lat:p.coordinate.latitude, lng:p.coordinate.longitude };
-      var a = new mapkit.MarkerAnnotation(p.coordinate, {
-        title:p.name, subtitle:info.addr, color:'#7F77DD', glyphText:'🍸'
+    _barAnnotations = data.places
+      // お気に入り済みの店は金ピンで別途表示するので、ここでは重複させない
+      .filter(function(p){ return !isBarFav({ name:p.name, lat:p.coordinate.latitude, lng:p.coordinate.longitude }); })
+      .map(function(p){
+        var info = { name:p.name, addr:(p.formattedAddress||''), lat:p.coordinate.latitude, lng:p.coordinate.longitude };
+        var a = new mapkit.MarkerAnnotation(p.coordinate, {
+          title:p.name, subtitle:info.addr, color:'#7F77DD', glyphText:'🍸'
+        });
+        a.barInfo = info;
+        a.addEventListener('select', function(){ onBarSelect(info); });
+        return a;
       });
-      a.barInfo = info;
-      a.addEventListener('select', function(){ onBarSelect(info); });
-      return a;
+    if(_barAnnotations.length){ _map.addAnnotations(_barAnnotations); }
+  };
+
+  try {
+    // バー系カテゴリ（ナイトライフ・醸造所・ワイナリー）で検索
+    var cats = [
+      mapkit.PointOfInterestCategory.Nightlife,
+      mapkit.PointOfInterestCategory.Brewery,
+      mapkit.PointOfInterestCategory.Winery,
+      mapkit.PointOfInterestCategory.Distillery
+    ];
+    var poi = new mapkit.PointsOfInterestSearch({
+      region: region,
+      pointOfInterestFilter: mapkit.PointOfInterestFilter.including(cats)
     });
-    _map.addAnnotations(_barAnnotations);
-  }, { region: region });
+    poi.search(handle);
+  } catch(e) {
+    // 万一カテゴリ検索が使えない環境ではキーワード検索にフォールバック
+    if(!_barSearch) _barSearch = new mapkit.Search({ getsUserLocation:true, language:'ja' });
+    _barSearch.search('バー', handle, { region: region });
+  }
 }
 
 // お気に入りバーをゴールドピンで表示（常に優先表示）
