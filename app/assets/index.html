@@ -267,7 +267,7 @@ html,body{background:#08091a;font-family:-apple-system,BlinkMacSystemFont,'Segoe
 //   ・トークンは毎回 Worker から取得するので手動更新・再ビルド不要。
 //   ・取得失敗時は自動で外部 Apple Maps にフォールバックする。
 // ============================================================
-var MAPKIT_TOKEN_URL = ''; // 例: 'https://tarot-mapkit-token.xxxx.workers.dev/'
+var MAPKIT_TOKEN_URL = 'https://tarot-mapkit-token.hir-o-ya.workers.dev/';
 var _tokenCache = { token: '', exp: 0 };
 
 function getMapkitToken(done){
