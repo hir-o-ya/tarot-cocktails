@@ -141,6 +141,11 @@ html,body{background:#08091a;font-family:-apple-system,BlinkMacSystemFont,'Segoe
 .bar-detail{width:100%;padding:12px 16px;background:rgba(20,17,45,.96);border-top:0.5px solid rgba(200,168,74,.3)}
 .bar-detail-name{color:#fce890;font-size:15px;font-weight:600}
 .bar-detail-addr{color:rgba(240,237,232,.6);font-size:12px;margin:4px 0 10px}
+.bar-row{display:flex;align-items:center;gap:8px;padding:9px 4px;border-bottom:0.5px solid rgba(255,255,255,.08);cursor:pointer}
+.bar-row:hover{background:rgba(255,255,255,.05)}
+.bar-row-name{color:#f0ede8;font-size:13px}
+#bar-multi-title{margin-bottom:6px}
+#bar-multi-list{max-height:200px;overflow-y:auto}
 .ragn{width:100%;padding:12px;border-radius:var(--r2);border:none;font-size:13px;font-weight:600;cursor:pointer;color:#fff;letter-spacing:.3px;transition:all .2s}
 .ragn.v{background:var(--btn-a-bg);box-shadow:var(--btn-a-sh)}.ragn.t{background:var(--btn-n-bg);box-shadow:var(--btn-n-sh)}
 .lbl{font-size:10px;letter-spacing:2px;color:rgba(200,168,74,.5);text-transform:uppercase}
@@ -241,9 +246,15 @@ html,body{background:#08091a;font-family:-apple-system,BlinkMacSystemFont,'Segoe
 <div class="map-head"><div class="lbl" style="margin:0">📍 近くのバー</div></div>
 <div id="mapkit-container"></div>
 <div id="bar-detail" class="bar-detail" style="display:none">
+<div id="bar-single">
 <div class="bar-detail-name" id="bar-detail-name"></div>
 <div class="bar-detail-addr" id="bar-detail-addr"></div>
 <button class="mpb" id="bar-fav-btn" onclick="toggleBarFav()">🤍 このバーをお気に入りに追加</button>
+</div>
+<div id="bar-multi" style="display:none">
+<div class="bar-detail-name" id="bar-multi-title"></div>
+<div id="bar-multi-list"></div>
+</div>
 </div>
 <div class="map-actions">
 <button class="mpb" onclick="searchNearbyBars()">🔍 この地点でバーを再検索</button>
@@ -849,6 +860,18 @@ function initMapkit(){
             colorScheme: mapkit.Map.ColorSchemes.Dark
           });
           _map.showsUserLocation = true;
+          // 同じビル等で重なるピンをまとめる（タップで店リストを表示）
+          _map.annotationForCluster = function(c){
+            var count = c.memberAnnotations.length;
+            var isFav = c.clusteringIdentifier === 'favbar';
+            var ann = new mapkit.MarkerAnnotation(c.coordinate, {
+              color: isFav ? '#c8a84a' : '#7F77DD',
+              glyphText: String(count),
+              title: count + '軒のバー'
+            });
+            ann.addEventListener('select', function(){ onClusterSelect(c); });
+            return ann;
+          };
           _map.region = new mapkit.CoordinateRegion(
             new mapkit.Coordinate(DEFAULT_COORD.lat, DEFAULT_COORD.lng),
             new mapkit.CoordinateSpan(0.05, 0.05)
@@ -891,7 +914,8 @@ function searchNearbyBars(coord){
       .map(function(p){
         var info = { name:p.name, addr:(p.formattedAddress||''), lat:p.coordinate.latitude, lng:p.coordinate.longitude };
         var a = new mapkit.MarkerAnnotation(p.coordinate, {
-          title:p.name, subtitle:info.addr, color:'#7F77DD', glyphText:'🍸'
+          title:p.name, subtitle:info.addr, color:'#7F77DD', glyphText:'🍸',
+          clusteringIdentifier:'bar'
         });
         a.barInfo = info;
         a.addEventListener('select', function(){ onBarSelect(info); });
@@ -926,7 +950,8 @@ function renderBarFavAnnotations(){
   if(_favBarAnnotations.length){ _map.removeAnnotations(_favBarAnnotations); }
   _favBarAnnotations = _barFavs.map(function(b){
     var a = new mapkit.MarkerAnnotation(new mapkit.Coordinate(b.lat, b.lng), {
-      title:b.name, subtitle:(b.addr||''), color:'#c8a84a', glyphText:'⭐'
+      title:b.name, subtitle:(b.addr||''), color:'#c8a84a', glyphText:'⭐',
+      clusteringIdentifier:'favbar'
     });
     a.barInfo = b;
     a.addEventListener('select', function(){ onBarSelect(b); });
@@ -952,10 +977,32 @@ function jumpToFavBars(){
 // バー選択時の詳細パネル
 function onBarSelect(info){
   _selectedBar = info;
+  document.getElementById('bar-multi').style.display = 'none';
+  document.getElementById('bar-single').style.display = 'block';
   document.getElementById('bar-detail-name').textContent = info.name || 'バー';
   document.getElementById('bar-detail-addr').textContent = info.addr || '';
   document.getElementById('bar-detail').style.display = 'block';
   updateBarFavBtn();
+}
+
+// クラスタ（重なったピン）タップ時：中の店をリスト表示して選ばせる
+function onClusterSelect(cluster){
+  var members = (cluster && cluster.memberAnnotations) || [];
+  document.getElementById('bar-single').style.display = 'none';
+  document.getElementById('bar-multi').style.display = 'block';
+  document.getElementById('bar-multi-title').textContent = 'このあたりのバー ' + members.length + '軒';
+  var listEl = document.getElementById('bar-multi-list');
+  listEl.innerHTML = '';
+  members.forEach(function(m){
+    var info = m.barInfo; if(!info) return;
+    var row = document.createElement('div'); row.className = 'bar-row';
+    var ic = document.createElement('span'); ic.textContent = isBarFav(info) ? '⭐' : '🍸';
+    var nm = document.createElement('span'); nm.className = 'bar-row-name'; nm.textContent = info.name || 'バー';
+    row.appendChild(ic); row.appendChild(nm);
+    row.onclick = function(){ onBarSelect(info); };
+    listEl.appendChild(row);
+  });
+  document.getElementById('bar-detail').style.display = 'block';
 }
 function hideBarDetail(){ var d=document.getElementById('bar-detail'); if(d) d.style.display='none'; _selectedBar=null; }
 
