@@ -16,10 +16,10 @@ MapKit JS 用の短命 JWT を発行する Worker。秘密鍵(.p8)は Cloudflare
 cd worker
 npm install
 
-# Key ID / Team ID を wrangler.toml に記入（または wrangler secret で登録）
-
-# 秘密鍵を Secret として登録（.p8 の中身を貼り付ける）
-npx wrangler secret put MAPKIT_PRIVATE_KEY
+# 鍵・識別子はすべて Secret として登録（公開リポジトリに残さない）
+npx wrangler secret put MAPKIT_PRIVATE_KEY   # .p8 の中身
+npx wrangler secret put MAPKIT_KEY_ID        # Key ID
+npx wrangler secret put MAPKIT_TEAM_ID       # Team ID
 
 # デプロイ
 npx wrangler deploy
@@ -42,6 +42,6 @@ curl https://tarot-mapkit-token.xxxx.workers.dev/
 | 変数 | 種別 | 内容 |
 |------|------|------|
 | `MAPKIT_PRIVATE_KEY` | secret | `.p8` の中身（PEM全体でも base64本体だけでもOK） |
-| `MAPKIT_KEY_ID` | var | Key ID |
-| `MAPKIT_TEAM_ID` | var | Team ID |
+| `MAPKIT_KEY_ID` | secret | Key ID |
+| `MAPKIT_TEAM_ID` | secret | Team ID |
 | `TOKEN_TTL_SECONDS` | var(任意) | トークン有効秒数（既定 1800 = 30分） |
