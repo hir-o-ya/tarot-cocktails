@@ -46,8 +46,8 @@ export default function App() {
         await Share.share({ message: data.text });
       }
 
-      // Apple Maps
-      if (data.type === 'openMap') {
+      // Apple Maps（多層防御: https のURLのみ開く）
+      if (data.type === 'openMap' && typeof data.url === 'string' && /^https:\/\//i.test(data.url)) {
         Linking.openURL(data.url);
       }
     } catch (e) {

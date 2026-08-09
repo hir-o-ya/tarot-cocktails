@@ -17,8 +17,14 @@
 "buildNumber": "4",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSLocationWhenInUseUsageDescription": "近くのバーを地図に表示するために現在地を使用します。"
+        "NSLocationWhenInUseUsageDescription": "近くのバーを地図に表示するために現在地を使用します。",
+        "CFBundleDevelopmentRegion": "ja",
+        "CFBundleAllowMixedLocalizations": true
       }
+    },
+    "locales": {
+      "ja": "./languages/ja.json",
+      "en": "./languages/en.json"
     },
     "extra": {
       "eas": {

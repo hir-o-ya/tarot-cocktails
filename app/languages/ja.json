@@ -1,0 +1,5 @@
+{
+  "ios": {
+    "NSLocationWhenInUseUsageDescription": "近くのバーを地図に表示するために現在地を使用します。"
+  }
+}
