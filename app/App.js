@@ -50,6 +50,11 @@ export default function App() {
       if (data.type === 'openMap' && typeof data.url === 'string' && /^https:\/\//i.test(data.url)) {
         Linking.openURL(data.url);
       }
+
+      // 外部リンク（バー詳細: Apple Maps・電話・サイト）— https / tel のみ許可
+      if (data.type === 'openExternal' && typeof data.url === 'string' && /^(https:\/\/|tel:)/i.test(data.url)) {
+        Linking.openURL(data.url);
+      }
     } catch (e) {
       // ignore
     }

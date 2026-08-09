@@ -144,6 +144,7 @@ html,body{background:#08091a;font-family:-apple-system,BlinkMacSystemFont,'Segoe
 .bar-detail::before{content:"";position:absolute;top:7px;left:50%;transform:translateX(-50%);width:38px;height:4px;border-radius:2px;background:rgba(200,168,74,.35)}
 .bar-detail-name{color:var(--gold2);font-size:15px;font-weight:600;letter-spacing:.3px}
 .bar-detail-addr{color:var(--text2);font-size:12px;margin:4px 0 10px;line-height:1.55}
+#bar-actions{display:flex;flex-direction:column;gap:8px;margin-bottom:8px}
 /* Cluster list rows (hist-item風) */
 .bar-row{width:100%;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.1);border-radius:12px;padding:11px;margin-top:7px;cursor:pointer;transition:all .15s}
 .bar-row:hover{background:rgba(200,168,74,.08);border-color:rgba(200,168,74,.3)}
@@ -259,6 +260,7 @@ html,body{background:#08091a;font-family:-apple-system,BlinkMacSystemFont,'Segoe
 <div id="bar-single">
 <div class="bar-detail-name" id="bar-detail-name"></div>
 <div class="bar-detail-addr" id="bar-detail-addr"></div>
+<div id="bar-actions"></div>
 <button class="mpb" id="bar-fav-btn" onclick="toggleBarFav()">🤍 このバーをお気に入りに追加</button>
 </div>
 <div id="bar-multi" style="display:none">
@@ -936,7 +938,8 @@ function searchNearbyBars(coord){
       // お気に入り済みの店は金ピンで別途表示するので、ここでは重複させない
       .filter(function(p){ return !isBarFav({ name:p.name, lat:p.coordinate.latitude, lng:p.coordinate.longitude }); })
       .map(function(p){
-        var info = { name:p.name, addr:(p.formattedAddress||''), lat:p.coordinate.latitude, lng:p.coordinate.longitude };
+        var info = { name:p.name, addr:(p.formattedAddress||''), lat:p.coordinate.latitude, lng:p.coordinate.longitude,
+          tel:(p.telephone||''), url:(p.urls && p.urls[0])||'', cat:(p.pointOfInterestCategory||'') };
         var a = new mapkit.MarkerAnnotation(p.coordinate, {
           title:p.name, subtitle:info.addr, color:'#7F77DD', glyphText:'🍸',
           clusteringIdentifier:'bar'
@@ -1004,9 +1007,43 @@ function onBarSelect(info){
   document.getElementById('bar-multi').style.display = 'none';
   document.getElementById('bar-single').style.display = 'block';
   document.getElementById('bar-detail-name').textContent = info.name || 'バー';
-  document.getElementById('bar-detail-addr').textContent = info.addr || '';
+  var cl = catLabel(info.cat);
+  document.getElementById('bar-detail-addr').textContent = (cl ? cl + ' · ' : '') + (info.addr || '');
+  renderBarActions(info);
   document.getElementById('bar-detail').style.display = 'block';
   updateBarFavBtn();
+}
+
+// カテゴリの日本語表示
+function catLabel(c){
+  var m = { Nightlife:'バー・ナイトライフ', Brewery:'ブルワリー', Winery:'ワイナリー', Distillery:'蒸溜所', Restaurant:'レストラン', Cafe:'カフェ' };
+  return m[c] || '';
+}
+
+// 詳細シートのアクションボタン（データがある項目だけ表示）
+function renderBarActions(info){
+  var el = document.getElementById('bar-actions');
+  el.innerHTML = '';
+  el.appendChild(makeActionBtn('mpb', '🗺️ Apple Mapsで開く（詳細・経路）', function(){ openInAppleMaps(info); }));
+  if(info.tel){ el.appendChild(makeActionBtn('menu-btn', '📞 電話する', function(){ openExternalUrl('tel:' + info.tel); })); }
+  if(info.url){ el.appendChild(makeActionBtn('menu-btn', '🌐 サイト・口コミを見る', function(){ openExternalUrl(info.url); })); }
+}
+function makeActionBtn(cls, label, fn){
+  var b = document.createElement('button'); b.className = cls; b.textContent = label; b.onclick = fn; return b;
+}
+
+// ネイティブApple Mapsでその店を開く（完全な詳細・経路はここで）
+function openInAppleMaps(info){
+  if(!info) return;
+  var url = 'https://maps.apple.com/?q=' + encodeURIComponent(info.name || 'バー') + '&ll=' + info.lat + ',' + info.lng;
+  openExternalUrl(url);
+}
+
+// 外部URL/電話をネイティブ側で開く（https・tel のみ）
+function openExternalUrl(url){
+  if(!url) return;
+  if(window.ReactNativeWebView){ sendToRN({ type:'openExternal', url:url }); }
+  else { try{ window.open(url, '_blank'); }catch(e){} }
 }
 
 // クラスタ（重なったピン）タップ時：中の店をリスト表示して選ばせる
@@ -1044,7 +1081,8 @@ function toggleBarFav(){
   if(isBarFav(_selectedBar)){
     _barFavs = _barFavs.filter(function(f){ return barKey(f)!==barKey(_selectedBar); });
   } else {
-    _barFavs.unshift({ name:_selectedBar.name, addr:_selectedBar.addr||'', lat:_selectedBar.lat, lng:_selectedBar.lng, t:Date.now() });
+    _barFavs.unshift({ name:_selectedBar.name, addr:_selectedBar.addr||'', lat:_selectedBar.lat, lng:_selectedBar.lng,
+      tel:_selectedBar.tel||'', url:_selectedBar.url||'', cat:_selectedBar.cat||'', t:Date.now() });
   }
   saveBarFavs();
   renderBarFavAnnotations();
