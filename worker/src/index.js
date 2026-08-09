@@ -68,6 +68,10 @@ export default {
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: CORS });
     }
+    // トークン取得は GET のみ許可
+    if (request.method !== 'GET') {
+      return new Response('Method Not Allowed', { status: 405, headers: { ...CORS, 'Allow': 'GET, OPTIONS' } });
+    }
     if (!env.MAPKIT_PRIVATE_KEY || !env.MAPKIT_KEY_ID || !env.MAPKIT_TEAM_ID) {
       return new Response('Server not configured', { status: 500, headers: CORS });
     }
@@ -77,7 +81,8 @@ export default {
         headers: { ...CORS, 'Content-Type': 'text/plain', 'Cache-Control': 'no-store' },
       });
     } catch (e) {
-      return new Response('Token generation failed: ' + e.message, { status: 500, headers: CORS });
+      // 内部エラーの詳細はクライアントに返さない（情報漏えい防止）
+      return new Response('Token generation failed', { status: 500, headers: CORS });
     }
   },
 };
