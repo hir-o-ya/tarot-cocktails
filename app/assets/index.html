@@ -269,7 +269,7 @@ html,body{background:#08091a;font-family:-apple-system,BlinkMacSystemFont,'Segoe
 </div>
 </div>
 <div id="bar-add" class="bar-detail" style="display:none">
-<div class="bar-detail-name">＋ バーを手動で追加</div>
+<div class="bar-detail-name" id="bar-add-title">＋ バーを手動で追加</div>
 <input id="bar-add-name" class="bar-input" type="text" placeholder="店名（例: ブルー）" oninput="updateAddSaveBtn()" />
 <input id="bar-add-addr" class="bar-input" type="text" placeholder="住所（例: 渋谷区恵比寿1-12-5）" />
 <button class="menu-btn" onclick="geocodeBarAddress()">📍 この住所で位置を確定</button>
@@ -817,7 +817,7 @@ var _mapkitLoaded = false, _mapkitLoading = false, _map = null;
 var _barSearch = null, _barAnnotations = [], _favBarAnnotations = [];
 var _selectedBar = null;
 var _mapMode = 'nearby'; // 'nearby' = 周辺検索, 'favonly' = お気に入りバーのみ
-var _addMode = false, _pendingCoord = null, _pendingAnnotation = null, _geocoder = null;
+var _addMode = false, _pendingCoord = null, _pendingAnnotation = null, _geocoder = null, _editKey = null;
 var _barFavs = JSON.parse(localStorage.getItem('tc_bar_favs') || '[]');
 
 function saveBarFavs(){ try{ localStorage.setItem('tc_bar_favs', JSON.stringify(_barFavs)); }catch(e){} }
@@ -1027,6 +1027,7 @@ function renderBarActions(info){
   el.appendChild(makeActionBtn('mpb', '🗺️ Apple Mapsで開く（詳細・経路）', function(){ openInAppleMaps(info); }));
   if(info.tel){ el.appendChild(makeActionBtn('menu-btn', '📞 電話する', function(){ openExternalUrl('tel:' + info.tel); })); }
   if(info.url){ el.appendChild(makeActionBtn('menu-btn', '🌐 サイト・口コミを見る', function(){ openExternalUrl(info.url); })); }
+  if(isBarFav(info)){ el.appendChild(makeActionBtn('menu-btn', '📍 位置を修正', function(){ editBarPosition(); })); }
 }
 function makeActionBtn(cls, label, fn){
   var b = document.createElement('button'); b.className = cls; b.textContent = label; b.onclick = fn; return b;
@@ -1091,24 +1092,42 @@ function toggleBarFav(){
 }
 
 // === バーの手動追加（データに無い行きつけの店を登録） ===
-function openAddBar(){
+function openAddBar(prefill){
   if(!_map){ return; }
   hideBarDetail();
   _addMode = true;
   _pendingCoord = null;
   if(_pendingAnnotation){ _map.removeAnnotation(_pendingAnnotation); _pendingAnnotation = null; }
-  document.getElementById('bar-add-name').value = '';
-  document.getElementById('bar-add-addr').value = '';
+  _editKey = (prefill && prefill._edit) || null;
+  document.getElementById('bar-add-title').textContent = _editKey ? '📍 バーの位置を修正' : '＋ バーを手動で追加';
+  document.getElementById('bar-add-name').value = (prefill && prefill.name) || '';
+  document.getElementById('bar-add-addr').value = (prefill && prefill.addr) || '';
   document.getElementById('bar-add-status').textContent = '位置: 未設定';
   document.getElementById('bar-add').style.display = 'block';
+  // 修正モードなら現在地点を初期表示して、正しい場所をタップし直せるようにする
+  if(prefill && prefill.lat != null){
+    setPendingCoord(prefill.lat, prefill.lng);
+    _map.setRegionAnimated(new mapkit.CoordinateRegion(
+      new mapkit.Coordinate(prefill.lat, prefill.lng), new mapkit.CoordinateSpan(0.004, 0.004)));
+    document.getElementById('bar-add-status').textContent = '正しい場所を地図でタップして修正';
+  }
   updateAddSaveBtn();
 }
 
 function closeAddBar(){
   _addMode = false;
+  _editKey = null;
   if(_pendingAnnotation){ _map.removeAnnotation(_pendingAnnotation); _pendingAnnotation = null; }
   _pendingCoord = null;
+  document.getElementById('bar-add-title').textContent = '＋ バーを手動で追加';
   document.getElementById('bar-add').style.display = 'none';
+}
+
+// 既存のお気に入りバーの位置を修正
+function editBarPosition(){
+  if(!_selectedBar) return;
+  var b = _selectedBar;
+  openAddBar({ name:b.name, addr:b.addr, lat:b.lat, lng:b.lng, _edit:barKey(b) });
 }
 
 // 追加する位置を確定（住所ジオコーディング / 地図タップ 共通）
@@ -1145,8 +1164,10 @@ function geocodeBarAddress(){
   _geocoder.lookup(addr, function(error, data){
     if(error || !data || !data.results || !data.results.length){ alert('住所が見つかりませんでした。地図を直接タップして位置を指定してください。'); return; }
     var c = data.results[0].coordinate;
-    _map.setCenterAnimated(c);
     setPendingCoord(c.latitude, c.longitude);
+    // 住所ジオコーディングはおおよその位置。拡大して微調整を促す。
+    _map.setRegionAnimated(new mapkit.CoordinateRegion(c, new mapkit.CoordinateSpan(0.004, 0.004)));
+    document.getElementById('bar-add-status').textContent = '位置: おおよそ設定 ✓（正確な場所は地図タップで微調整）';
   });
 }
 
@@ -1165,13 +1186,20 @@ function saveManualBar(){
   if(!_pendingCoord){ alert('位置を指定してください（住所検索 または 地図タップ）'); return; }
   var addr = document.getElementById('bar-add-addr').value.trim();
   var lat = _pendingCoord.lat, lng = _pendingCoord.lng;
-  _barFavs.unshift({ name:name, addr:addr, lat:lat, lng:lng, t:Date.now() });
+  var editing = _editKey;
+  if(editing){
+    // 既存バーの位置（名前・住所）を更新
+    var idx = _barFavs.findIndex(function(f){ return barKey(f) === editing; });
+    if(idx >= 0){ _barFavs[idx].name = name; _barFavs[idx].addr = addr; _barFavs[idx].lat = lat; _barFavs[idx].lng = lng; }
+  } else {
+    _barFavs.unshift({ name:name, addr:addr, lat:lat, lng:lng, tel:'', url:'', cat:'', t:Date.now() });
+  }
   saveBarFavs();
   sendToRN({ type:'saveBarFav', data:_barFavs });
   closeAddBar();
   renderBarFavAnnotations();
   _map.setRegionAnimated(new mapkit.CoordinateRegion(
-    new mapkit.Coordinate(lat, lng), new mapkit.CoordinateSpan(0.01, 0.01)
+    new mapkit.Coordinate(lat, lng), new mapkit.CoordinateSpan(0.008, 0.008)
   ));
 }
 
