@@ -279,6 +279,7 @@ html,body{background:#08091a;font-family:-apple-system,BlinkMacSystemFont,'Segoe
 <button class="menu-btn" onclick="closeAddBar()">キャンセル</button>
 </div>
 <div class="map-actions">
+<button class="mpb" onclick="locateAndSearch()">📍 現在地の近くのバー</button>
 <button class="mpb" onclick="searchNearbyBars()">🔍 この地点でバーを再検索</button>
 <button class="menu-btn" onclick="openAddBar()">＋ バーを手動で追加</button>
 <button class="menu-btn" id="map-favjump" onclick="jumpToFavBars()">⭐ お気に入りバーを表示</button>
@@ -814,7 +815,7 @@ function clearAllHistory() {
 var DEFAULT_COORD = { lat: 35.6812, lng: 139.7671 }; // 東京駅（位置情報が取れない時のフォールバック）
 var _mapReturn = 'p-mode';
 var _mapkitLoaded = false, _mapkitLoading = false, _map = null;
-var _barSearch = null, _barAnnotations = [], _favBarAnnotations = [];
+var _barSearch = null, _barAnnotations = [], _favBarAnnotations = [], _locAnnotation = null;
 var _selectedBar = null;
 var _mapMode = 'nearby'; // 'nearby' = 周辺検索, 'favonly' = お気に入りバーのみ
 var _addMode = false, _pendingCoord = null, _pendingAnnotation = null, _geocoder = null, _editKey = null;
@@ -878,12 +879,14 @@ function initMapkit(){
       setTimeout(function(){
         try{
           _map = new mapkit.Map('mapkit-container', {
-            showsUserLocationControl: true,
+            // 位置情報はネイティブ側で取得するため、MapKit標準の現在地機能は無効化
+            // （これでWebKitのパス付き確認ダイアログが出なくなる）
+            showsUserLocationControl: false,
             showsCompass: mapkit.FeatureVisibility.Hidden,
             showsScale: mapkit.FeatureVisibility.Hidden,
             colorScheme: mapkit.Map.ColorSchemes.Dark
           });
-          _map.showsUserLocation = true;
+          _map.showsUserLocation = false;
           // 同じビル等で重なるピンをまとめる（タップで店リストを表示）
           _map.annotationForCluster = function(c){
             var count = c.memberAnnotations.length;
@@ -911,17 +914,43 @@ function initMapkit(){
 
 // 現在地へ移動してから周辺のバーを検索
 function locateAndSearch(){
-  if(navigator.geolocation){
+  if(window.ReactNativeWebView){
+    // ネイティブ(expo-location)で取得を要求。結果は window.__deliverLocation で受け取る。
+    sendToRN({ type:'requestLocation' });
+  } else if(navigator.geolocation){
+    // ブラウザ（開発・テスト用）フォールバック
     navigator.geolocation.getCurrentPosition(function(pos){
-      var c = new mapkit.Coordinate(pos.coords.latitude, pos.coords.longitude);
-      _map.setRegionAnimated(new mapkit.CoordinateRegion(c, new mapkit.CoordinateSpan(0.02, 0.02)));
-      searchNearbyBars(c);
-    }, function(){
-      searchNearbyBars(); // 取得失敗 → 現在の地図中心で検索
-    }, { enableHighAccuracy:true, timeout:8000, maximumAge:60000 });
+      onLocationResult({ lat:pos.coords.latitude, lng:pos.coords.longitude });
+    }, function(){ onLocationResult(null); }, { enableHighAccuracy:true, timeout:8000, maximumAge:60000 });
   } else {
+    onLocationResult(null);
+  }
+}
+
+// ネイティブ / ブラウザ 双方の位置情報結果をここで処理
+window.__deliverLocation = function(coords){ onLocationResult(coords); };
+
+function onLocationResult(coords){
+  if(!_map) return;
+  if(coords && typeof coords.lat === 'number'){
+    var c = new mapkit.Coordinate(coords.lat, coords.lng);
+    _map.setRegionAnimated(new mapkit.CoordinateRegion(c, new mapkit.CoordinateSpan(0.02, 0.02)));
+    setCurrentLocationPin(coords.lat, coords.lng);
+    searchNearbyBars(c);
+  } else {
+    // 取得失敗/拒否 → 現在の地図中心で検索（デフォルトは東京駅）
     searchNearbyBars();
   }
+}
+
+// 現在地マーカー（MapKit標準ドットの代わり）
+function setCurrentLocationPin(lat, lng){
+  if(!_map || !window.mapkit) return;
+  if(_locAnnotation){ _map.removeAnnotation(_locAnnotation); }
+  _locAnnotation = new mapkit.MarkerAnnotation(new mapkit.Coordinate(lat, lng), {
+    color:'#4A90E2', glyphText:'●', title:'現在地'
+  });
+  _map.addAnnotation(_locAnnotation);
 }
 
 // 周辺のバーをカテゴリ検索して通常ピンで表示
@@ -966,7 +995,7 @@ function searchNearbyBars(coord){
     poi.search(handle);
   } catch(e) {
     // 万一カテゴリ検索が使えない環境ではキーワード検索にフォールバック
-    if(!_barSearch) _barSearch = new mapkit.Search({ getsUserLocation:true, language:'ja' });
+    if(!_barSearch) _barSearch = new mapkit.Search({ getsUserLocation:false, language:'ja' });
     _barSearch.search('バー', handle, { region: region });
   }
 }

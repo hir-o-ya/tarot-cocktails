@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Accelerometer } from 'expo-sensors';
+import * as Location from 'expo-location';
 
 const htmlFile = require('./assets/index.html');
 
@@ -36,6 +37,14 @@ export default function App() {
     return () => sub.remove();
   }, []);
 
+  // ── 位置情報をWebViewへ渡す（取得できなければ null）──
+  const deliverLocation = (coords) => {
+    const payload = coords ? JSON.stringify(coords) : 'null';
+    webViewRef.current?.injectJavaScript(
+      `window.__deliverLocation && window.__deliverLocation(${payload}); true;`
+    );
+  };
+
   // ── WebViewからのメッセージ受信 ──
   const handleMessage = async (event) => {
     try {
@@ -44,6 +53,20 @@ export default function App() {
       // シェア
       if (data.type === 'share') {
         await Share.share({ message: data.text });
+      }
+
+      // 位置情報要求（ネイティブで取得 → WebViewへ渡す。WebKitの確認は出さない）
+      if (data.type === 'requestLocation') {
+        try {
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          if (status !== 'granted') { deliverLocation(null); return; }
+          const pos = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+          });
+          deliverLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        } catch (e) {
+          deliverLocation(null);
+        }
       }
 
       // Apple Maps（多層防御: https のURLのみ開く）
