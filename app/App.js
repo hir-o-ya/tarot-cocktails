@@ -96,9 +96,12 @@ export default function App() {
         allowsInlineMediaPlayback={true}
         onMessage={handleMessage}
         onShouldStartLoadWithRequest={(request) => {
-          // Apple Mapsリンクは外部で開く
-          if (request.url.includes('maps.apple.com')) {
-            Linking.openURL(request.url);
+          const url = request.url || '';
+          const isHttp = /^https?:\/\//i.test(url);
+          // アプリ本体はローカルのバンドルHTML（SPA）。地図の「リーガル」リンクや
+          // 外部リンクのタップ(http/https)はWebViewを離脱させず外部ブラウザで開く。
+          if (isHttp && (request.navigationType === 'click' || url.includes('maps.apple.com'))) {
+            Linking.openURL(url);
             return false;
           }
           return true;
