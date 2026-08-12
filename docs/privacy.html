@@ -38,49 +38,59 @@ footer{text-align:center;padding:1.5rem;font-size:.7rem;color:rgba(255,255,255,.
 
 <div class="header">
 <div class="page-title"><span class="ja">プライバシーポリシー</span><span class="en">Privacy Policy</span></div>
-<div class="page-sub"><span class="ja">最終更新日：2026年6月5日</span><span class="en">Last updated: June 2026</span></div>
+<div class="page-sub"><span class="ja">最終更新日：2026年8月9日</span><span class="en">Last updated: August 2026</span></div>
 </div>
 
 <main>
 <div class="section">
 <h3><span class="ja">第1条（収集する情報）</span><span class="en">1. Information We Collect</span></h3>
-<p class="ja"><strong>本アプリは個人情報を収集しません。</strong><br>
-本アプリは完全にオフラインで動作し、氏名、メールアドレス、位置情報、デバイスの固有識別情報等を一切収集・送信・保存しません。</p>
-<p class="en"><strong>This app does not collect personal information.</strong><br>
-It operates entirely offline and does not collect, transmit, or store any personally identifiable information.</p>
+<p class="ja"><strong>本アプリは、あなたを特定する個人情報（氏名、メールアドレス、アカウント情報等）を収集しません。</strong><br>
+占い・カクテル機能はデバイス内で完結します。ただし「近くのバーを探す」地図機能を使用する場合に限り、地図の表示・検索のために位置情報が利用されます（第2条・第3条参照）。位置情報が開発者のサーバーに保存されることはありません。</p>
+<p class="en"><strong>This app does not collect personal information that identifies you (such as name, email, or account details).</strong><br>
+The tarot and cocktail features run entirely on your device. Only when you use the "Find Nearby Bars" map feature is your location used, solely to display and search the map (see Sections 2 and 3). Your location is never stored on the developer's servers.</p>
 </div>
 
 <div class="section">
-<h3><span class="ja">第2条（利用状況の分析について）</span><span class="en">2. Analytics</span></h3>
-<p class="ja">本アプリは、利用状況の分析やトラッキングを一切行いません。外部のアナリティクスサービスは使用していません。</p>
-<p class="en">The App does not perform any usage analytics or tracking. No external analytics services are used.</p>
+<h3><span class="ja">第2条（位置情報の利用）</span><span class="en">2. Use of Location</span></h3>
+<p class="ja">「近くのバーを探す」地図機能を使用する際、周辺のバーを地図に表示するためにデバイスの位置情報を利用します。位置情報の利用にはお客様の許可が必要で、許可されない場合でも既定の地点を中心に地図をご利用いただけます。取得した位置情報はその時点で地図の表示・検索に使用されるのみで、開発者が収集・保存したり、第三者へ販売することはありません。</p>
+<p class="en">When you use the "Find Nearby Bars" map feature, your device location is used to show nearby bars on the map. This requires your permission; if you decline, the map still works centered on a default location. Your location is used only in the moment to display and search the map, and is never collected, stored, or sold by the developer.</p>
 </div>
 
 <div class="section">
-<h3><span class="ja">第3条（外部サービスへのリンク）</span><span class="en">3. External Links</span></h3>
-<p class="ja">本アプリは「近くのバーを探す」機能でApple Mapsへのリンクを提供します。</p>
-<p class="en">This app provides links to Apple Maps for the "Find Nearby Bars" feature.</p>
+<h3><span class="ja">第3条（地図・外部サービス）</span><span class="en">3. Map &amp; Third-Party Services</span></h3>
+<p class="ja">地図の表示およびバー検索には、Apple社の地図サービス（Apple MapKit）を利用します。この機能の利用時、地図の表示・検索のために位置情報や検索条件がAppleに送信されます。これらの取り扱いはAppleのプライバシーポリシーに従います。<br>
+また、地図サービスの認証のため、開発者が管理するトークン発行サーバー（Cloudflare Workers）へ、短時間のみ有効な認証トークンを取得するリクエストを送信します。このリクエストに氏名・位置情報などの個人情報は含まれません（通信に伴うIPアドレス等の技術情報は、インフラ提供元であるCloudflareにより処理されます）。<br>
+地図上のバーの位置・名称等の情報は地図サービス提供元のデータに基づくものであり、正確性・網羅性を保証するものではありません。</p>
+<p class="en">Map display and bar search are provided by Apple's mapping service (Apple MapKit). When you use this feature, your location and search terms are sent to Apple to render and search the map, handled under Apple's privacy policy.<br>
+To authenticate with the map service, the app also requests a short-lived token from a token-issuing server operated by the developer (Cloudflare Workers). This request contains no personal information such as your name or location (standard connection metadata such as IP address is processed by Cloudflare as the infrastructure provider).<br>
+Bar locations and names shown on the map are based on third-party map data and are not guaranteed to be accurate or complete.</p>
 </div>
 
 <div class="section">
 <h3><span class="ja">第4条（データの保存）</span><span class="en">4. Data Storage</span></h3>
-<p class="ja">本アプリはすべてのデータ（お気に入り、履歴を含む）をデバイス内に保存します。外部サーバーへのデータ送信は行いません。アプリを削除すると、すべてのローカルデータが消去されます。</p>
-<p class="en">All data, including favorites and history, is stored locally on your device. No data is transmitted to external servers. Deleting the app removes all local data.</p>
+<p class="ja">お気に入り（カクテル・バー）、履歴、手動で追加したバーなどのデータは、すべてデバイス内に保存されます。これらのデータが開発者のサーバーへ送信・保存されることはありません（地図機能の利用に伴う第2条・第3条の通信を除きます）。アプリを削除すると、すべてのローカルデータが消去されます。</p>
+<p class="en">Your favorites (cocktails and bars), history, and manually added bars are all stored locally on your device. This data is never transmitted to or stored on the developer's servers (except for the communications described in Sections 2 and 3 when using the map feature). Deleting the app removes all local data.</p>
 </div>
 
 <div class="section">
-<h3><span class="ja">第5条（未成年者のプライバシー）</span><span class="en">5. Minors' Privacy</span></h3>
+<h3><span class="ja">第5条（利用状況の分析について）</span><span class="en">5. Analytics</span></h3>
+<p class="ja">本アプリは、利用状況の分析やトラッキングを一切行いません。外部のアナリティクスサービスや広告SDKは使用していません。</p>
+<p class="en">The App does not perform any usage analytics or tracking. No external analytics services or advertising SDKs are used.</p>
+</div>
+
+<div class="section">
+<h3><span class="ja">第6条（未成年者のプライバシー）</span><span class="en">6. Minors' Privacy</span></h3>
 <p class="ja">本アプリは飲酒に関するコンテンツを含むため、20歳以上を対象としています。</p>
 <p class="en">This app contains alcohol-related content and is intended for users aged 20 and older (in accordance with Japanese law).</p>
 </div>
 
 <div class="section">
-<h3><span class="ja">第6条（お問い合わせ）</span><span class="en">6. Contact</span></h3>
+<h3><span class="ja">第7条（お問い合わせ）</span><span class="en">7. Contact</span></h3>
 <p><a href="mailto:hi-mano@outlook.com">hi-mano@outlook.com</a></p>
 </div>
 
 <div class="section">
-<h3><span class="ja">第7条（プライバシーポリシーの変更）</span><span class="en">7. Changes to This Policy</span></h3>
+<h3><span class="ja">第8条（プライバシーポリシーの変更）</span><span class="en">8. Changes to This Policy</span></h3>
 <p class="ja">当方は、必要に応じて本ポリシーを変更することがあります。重要な変更がある場合には、本アプリの掲載ページ等にてお知らせいたします。</p>
 <p class="en">The Developer may revise this Policy as necessary. In the event of significant changes, we will provide notice on the App's listing page.</p>
 </div>

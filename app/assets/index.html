@@ -134,6 +134,23 @@ html,body{background:#08091a;font-family:-apple-system,BlinkMacSystemFont,'Segoe
 .rrow:last-child{border-bottom:none}.rrow span{color:var(--text2)}
 .mpb{width:100%;padding:11px;border-radius:var(--r2);border:0.5px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);font-size:13px;cursor:pointer;color:var(--text);display:flex;align-items:center;justify-content:center;gap:7px;transition:background .15s}
 .mpb:hover{background:rgba(255,255,255,.1)}
+/* Map screen */
+.ph-map{justify-content:flex-start;padding:0;gap:0;height:100vh;min-height:100vh}
+.map-head{width:100%;padding:calc(12px + env(safe-area-inset-top)) 16px 11px;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,rgba(8,9,26,.97),rgba(8,9,26,.82));border-bottom:0.5px solid rgba(200,168,74,.18)}
+#mapkit-container{width:100%;flex:1 1 auto;min-height:0;background:#0d0f22}
+.map-actions{width:100%;padding:12px 16px calc(14px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px;background:linear-gradient(180deg,rgba(8,9,26,.82),rgba(8,9,26,.97))}
+/* Bottom sheet (bar detail) */
+.bar-detail{position:relative;width:100%;padding:18px 16px 14px;background:linear-gradient(180deg,var(--vbg),#100a22);border-top:0.5px solid rgba(200,168,74,.35);border-radius:18px 18px 0 0;box-shadow:0 -8px 24px rgba(0,0,0,.45);animation:fu .28s ease-out}
+.bar-detail::before{content:"";position:absolute;top:7px;left:50%;transform:translateX(-50%);width:38px;height:4px;border-radius:2px;background:rgba(200,168,74,.35)}
+.bar-detail-name{color:var(--gold2);font-size:15px;font-weight:600;letter-spacing:.3px}
+.bar-detail-addr{color:var(--text2);font-size:12px;margin:4px 0 10px;line-height:1.55}
+#bar-actions{display:flex;flex-direction:column;gap:8px;margin-bottom:8px}
+/* Cluster list rows (hist-item風) */
+.bar-row{width:100%;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.1);border-radius:12px;padding:11px;margin-top:7px;cursor:pointer;transition:all .15s}
+.bar-row:hover{background:rgba(200,168,74,.08);border-color:rgba(200,168,74,.3)}
+.bar-row-name{color:var(--text);font-size:13px;font-weight:500}
+#bar-multi-title{margin-bottom:2px}
+#bar-multi-list{max-height:210px;overflow-y:auto}
 .ragn{width:100%;padding:12px;border-radius:var(--r2);border:none;font-size:13px;font-weight:600;cursor:pointer;color:#fff;letter-spacing:.3px;transition:all .2s}
 .ragn.v{background:var(--btn-a-bg);box-shadow:var(--btn-a-sh)}.ragn.t{background:var(--btn-n-bg);box-shadow:var(--btn-n-sh)}
 .lbl{font-size:10px;letter-spacing:2px;color:rgba(200,168,74,.5);text-transform:uppercase}
@@ -160,6 +177,7 @@ html,body{background:#08091a;font-family:-apple-system,BlinkMacSystemFont,'Segoe
 <button class="sbtn v" id="stbtn" onclick="goMood()">今夜の一杯を探す →</button>
 <button class="menu-btn" id="galbtn" onclick="showGallery()">📖 カード図鑑（全22枚）</button>
 <button class="menu-btn" onclick="showFavorites()">❤ お気に入り</button>
+<button class="menu-btn" onclick="openFavBarsMap()">🍸 お気に入りバーの地図</button>
 <button class="menu-btn" onclick="showHistory()">📜 履歴</button>
 </div>
 
@@ -228,12 +246,73 @@ html,body{background:#08091a;font-family:-apple-system,BlinkMacSystemFont,'Segoe
 <button class="menu-btn" onclick="show('p-mode')" style="margin-top:8px">← 戻る</button>
 </div>
 
+<!-- MAP -->
+<div class="ph ph-map" id="p-map">
+<div class="map-head"><div class="lbl" style="margin:0">📍 近くのバー</div></div>
+<div id="mapkit-container"></div>
+<div id="bar-detail" class="bar-detail" style="display:none">
+<div id="bar-single">
+<div class="bar-detail-name" id="bar-detail-name"></div>
+<div class="bar-detail-addr" id="bar-detail-addr"></div>
+<div id="bar-actions"></div>
+<button class="mpb" id="bar-fav-btn" onclick="toggleBarFav()">🤍 このバーをお気に入りに追加</button>
+</div>
+<div id="bar-multi" style="display:none">
+<div class="bar-detail-name" id="bar-multi-title"></div>
+<div id="bar-multi-list"></div>
+</div>
+</div>
+<div class="map-actions">
+<button class="mpb" onclick="locateAndSearch()">📍 現在地の近くのバー</button>
+<button class="mpb" onclick="searchNearbyBars()">🔍 この地点でバーを再検索</button>
+<button class="menu-btn" id="map-favjump" onclick="jumpToFavBars()">⭐ お気に入りバーを表示</button>
+<button class="menu-btn" onclick="closeMap()">← 戻る</button>
+</div>
+</div>
+
 <!-- RESULT -->
 <div class="ph" id="p-res"><div class="rw" id="rw"></div></div>
 
 </div>
 
 <script>
+
+// ============================================================
+// MapKit JS 設定（Cloudflare Worker トークン方式）
+// ------------------------------------------------------------
+// デプロイした Worker の URL を MAPKIT_TOKEN_URL に設定する。
+//   ・空文字のままなら従来どおり外部 Apple Maps を開くフォールバック動作。
+//   ・秘密鍵は Worker(Cloudflare) 側だけにあり、このアプリには一切含まれない。
+//   ・トークンは毎回 Worker から取得するので手動更新・再ビルド不要。
+//   ・取得失敗時は自動で外部 Apple Maps にフォールバックする。
+// ============================================================
+var MAPKIT_TOKEN_URL = 'https://tarot-mapkit-token.hir-o-ya.workers.dev/';
+var _tokenCache = { token: '', exp: 0 };
+
+function getMapkitToken(done){
+  if(!MAPKIT_TOKEN_URL){ done(''); return; }
+  var nowSec = Math.floor(Date.now()/1000);
+  // 有効なキャッシュがあれば再利用（失効60秒前から取り直し）
+  if(_tokenCache.token && _tokenCache.exp - 60 > nowSec){ done(_tokenCache.token); return; }
+  fetch(MAPKIT_TOKEN_URL, { cache:'no-store' })
+    .then(function(r){ if(!r.ok) throw new Error('http '+r.status); return r.text(); })
+    .then(function(t){
+      t = (t||'').trim();
+      if(!t || t.indexOf('.') < 0) throw new Error('bad token');
+      _tokenCache.token = t;
+      _tokenCache.exp = _parseJwtExp(t) || (nowSec + 1500);
+      done(t);
+    })
+    .catch(function(){ done(''); }); // 失敗 → 空を返して外部マップにフォールバック
+}
+
+function _parseJwtExp(t){
+  try{
+    var p = t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+    var pad = p.length % 4; if(pad) p += '===='.slice(pad);
+    return (JSON.parse(atob(p)).exp) || 0;
+  }catch(e){ return 0; }
+}
 
 const C=[
 {n:0,nm:"愚者",en:"The Fool",s:"🌀",k:"自由・冒険・始まり",rom:"0",bg1:"#2d1a6b",bg2:"#080818",
@@ -450,7 +529,33 @@ function spawnDrop(){const d=document.createElementNS('http://www.w3.org/2000/sv
 function showResult(){addToHistory();checkFavStatus();const d=(mode==='a'?card.a:card.na)[up?'u':'v'];const isA=mode==='a';const stars=['','★','★★'];const shareText='今夜、'+card.nm+'に選ばれた。\n一杯は '+d.c+'。\n\n#TarotAndCocktails #今夜の一杯 #タロット占い';document.getElementById('rw').innerHTML='<div class="rbadge '+(isA?'v':'t')+'">'+(isA?'🍸 カクテル':'🌿 モクテル')+'</div><div class="rpair '+(isA?'v':'t')+'">'+card.s+' '+card.nm+' × '+d.c+'</div><div class="rhero"><div class="ricon">'+d.i+'</div><div class="rname">'+d.c+'</div><div class="rorient '+(up?'ppu':'ppr')+'">'+d.o+' — '+(d.nt||'')+'</div><div class="rstory">'+d.st+'</div>'+(!isA&&d.h?'<div class="rherb">🌿 '+d.h+'</div>':'')+(isA&&d.d?'<div class="rdiff"><span class="'+(d.d===1?'d1':'d2')+'">'+stars[d.d]+'</span><span>'+d.dl+'</span>'+(ABV[d.c]?'<span class="abv">'+ABV[d.c]+'</span>':'')+'</div>':'')+'</div><div class="rrec" onclick="toggleRec(this)"><div class="rrect">レシピを見る<span>▾</span></div><div class="rrows">'+d.r.map(x=>'<div class="rrow">'+x[0]+'<span>'+x[1]+'</span></div>').join('')+'</div></div><button class="mpb" id="favbtn" onclick="toggleFavorite()" class="favbtn">🤍 お気に入りに追加</button><button class="mpb" onclick="openMap()">📍 近くのバーを探す →</button><button class="mpb" onclick="doShare(\''+card.nm+'\',\''+d.c.replace(/'/g,"\\'")+'\',\''+d.o+'\')">📤 シェアする</button><button class="ragn '+(isA?'v':'t')+'" onclick="reset()">最初からやり直す</button>';show('p-res');}
 
 function toggleRec(el){const r=el.querySelector('.rrows');const t=el.querySelector('span:last-child');r.classList.toggle('open');t.textContent=r.classList.contains('open')?'▴':'▾';}
-function openMap(){window.open('https://maps.apple.com/?q='+encodeURIComponent('バー'),'_blank');}
+function openMap(){
+  _mapReturn = document.getElementById('p-res').classList.contains('on') ? 'p-res' : 'p-mode';
+  _mapMode = 'nearby';
+  // URL未設定 → 従来どおり外部 Apple Maps を開く
+  if(!MAPKIT_TOKEN_URL){ window.open('https://maps.apple.com/?q='+encodeURIComponent('バー'),'_blank'); return; }
+  hideBarDetail();
+  // 先にトークンを取得。取れなければ外部 Apple Maps にフォールバック。
+  getMapkitToken(function(tok){
+    if(!tok){ window.open('https://maps.apple.com/?q='+encodeURIComponent('バー'),'_blank'); return; }
+    show('p-map');
+    initMapkit();
+  });
+}
+
+// トップメニュー用: お気に入りバーだけを表示する地図
+function openFavBarsMap(){
+  _mapReturn = 'p-mode';
+  if(!_barFavs.length){ alert('まだお気に入りのバーがありません。「近くのバーを探す」からピンをタップして⭐で登録してください。'); return; }
+  if(!MAPKIT_TOKEN_URL){ alert('地図を利用できません。'); return; }
+  _mapMode = 'favonly';
+  hideBarDetail();
+  getMapkitToken(function(tok){
+    if(!tok){ alert('地図トークンを取得できませんでした。'); return; }
+    show('p-map');
+    initMapkit();
+  });
+}
 function doShare(cardName,cocktailName,orient){const text='今夜、'+cardName+'（'+orient+'）に選ばれた。\n一杯は '+cocktailName+'。\n\n#TarotAndCocktails #今夜の一杯 #タロット占い';if(window.ReactNativeWebView){window.ReactNativeWebView.postMessage(JSON.stringify({type:'share',text:text}));}else if(navigator.share){navigator.share({title:'Tarot & Cocktails',text:text}).catch(()=>{});}else if(navigator.clipboard){navigator.clipboard.writeText(text).then(()=>alert('テキストをコピーしました！SNSに貼り付けてシェアしてね'));}}
 
 
@@ -684,6 +789,314 @@ function clearAllHistory() {
     renderHistScreen();
     sendToRN({ type: 'saveHist', data: _hist });
   }
+}
+
+
+// ============================================================
+// === MapKit JS（アプリ内マップ + バーのお気に入り） ===
+// ============================================================
+var DEFAULT_COORD = { lat: 35.6812, lng: 139.7671 }; // 東京駅（位置情報が取れない時のフォールバック）
+var _mapReturn = 'p-mode';
+var _mapkitLoaded = false, _mapkitLoading = false, _map = null;
+var _barSearch = null, _barAnnotations = [], _favBarAnnotations = [], _locAnnotation = null;
+var _selectedBar = null;
+var _mapMode = 'nearby'; // 'nearby' = 周辺検索, 'favonly' = お気に入りバーのみ
+var _barFavs = JSON.parse(localStorage.getItem('tc_bar_favs') || '[]');
+
+function saveBarFavs(){ try{ localStorage.setItem('tc_bar_favs', JSON.stringify(_barFavs)); }catch(e){} }
+
+function closeMap(){ hideBarDetail(); show(_mapReturn); }
+
+function mapFallback(msg){
+  try{ if(msg) alert(msg); }catch(e){}
+  window.open('https://maps.apple.com/?q='+encodeURIComponent('バー'),'_blank');
+  show(_mapReturn);
+}
+
+// MapKit JS ライブラリを CDN から読み込む
+function loadMapkitScript(cb){
+  if(_mapkitLoaded && window.mapkit){ cb(); return; }
+  var waiter = function(){ if(_mapkitLoaded && window.mapkit){ cb(); } else { setTimeout(waiter, 150); } };
+  if(_mapkitLoading){ waiter(); return; }
+  _mapkitLoading = true;
+  var s = document.createElement('script');
+  s.src = 'https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js';
+  s.crossOrigin = 'anonymous';
+  s.setAttribute('data-libraries', 'map,annotations,services,user-location');
+  s.onload = function(){ _mapkitLoaded = true; cb(); };
+  s.onerror = function(){ _mapkitLoading = false; cb('error'); };
+  document.head.appendChild(s);
+}
+
+// モード（近く/お気に入りのみ）に応じてヘッダーと表示内容を切り替え
+function applyMapMode(){
+  if(!_map) return;
+  var lbl = document.querySelector('#p-map .map-head .lbl');
+  renderBarFavAnnotations();
+  if(_mapMode === 'favonly'){
+    if(lbl) lbl.textContent = '⭐ お気に入りバー';
+    // 周辺(紫)ピンは消してお気に入りだけにする
+    if(_barAnnotations.length){ _map.removeAnnotations(_barAnnotations); _barAnnotations = []; }
+    jumpToFavBars();
+  } else {
+    if(lbl) lbl.textContent = '📍 近くのバー';
+    locateAndSearch();
+  }
+}
+
+function initMapkit(){
+  // 既に初期化済みなら、モードに応じて表示を更新するだけ
+  if(_map){
+    setTimeout(applyMapMode, 60);
+    return;
+  }
+  loadMapkitScript(function(err){
+    if(err || !window.mapkit){ mapFallback('地図の読み込みに失敗しました。外部の地図を開きます。'); return; }
+    try{
+      mapkit.init({
+        authorizationCallback: function(done){ getMapkitToken(done); },
+        language: 'ja'
+      });
+      // コンテナのレイアウト確定後に生成
+      setTimeout(function(){
+        try{
+          _map = new mapkit.Map('mapkit-container', {
+            // 位置情報はネイティブ側で取得するため、MapKit標準の現在地機能は無効化
+            // （これでWebKitのパス付き確認ダイアログが出なくなる）
+            showsUserLocationControl: false,
+            showsCompass: mapkit.FeatureVisibility.Hidden,
+            showsScale: mapkit.FeatureVisibility.Hidden,
+            colorScheme: mapkit.Map.ColorSchemes.Dark
+          });
+          _map.showsUserLocation = false;
+          // 同じビル等で重なるピンをまとめる（タップで店リストを表示）
+          _map.annotationForCluster = function(c){
+            var count = c.memberAnnotations.length;
+            var isFav = c.clusteringIdentifier === 'favbar';
+            var ann = new mapkit.MarkerAnnotation(c.coordinate, {
+              color: isFav ? '#c8a84a' : '#7F77DD',
+              glyphText: String(count),
+              title: count + '軒のバー'
+            });
+            ann.addEventListener('select', function(){ onClusterSelect(c); });
+            return ann;
+          };
+          _map.region = new mapkit.CoordinateRegion(
+            new mapkit.Coordinate(DEFAULT_COORD.lat, DEFAULT_COORD.lng),
+            new mapkit.CoordinateSpan(0.05, 0.05)
+          );
+          applyMapMode();
+        }catch(e){ mapFallback('地図の初期化に失敗しました。外部の地図を開きます。'); }
+      }, 80);
+    }catch(e){ mapFallback('地図の初期化に失敗しました。外部の地図を開きます。'); }
+  });
+}
+
+// 現在地へ移動してから周辺のバーを検索
+function locateAndSearch(){
+  if(window.ReactNativeWebView){
+    // ネイティブ(expo-location)で取得を要求。結果は window.__deliverLocation で受け取る。
+    sendToRN({ type:'requestLocation' });
+  } else if(navigator.geolocation){
+    // ブラウザ（開発・テスト用）フォールバック
+    navigator.geolocation.getCurrentPosition(function(pos){
+      onLocationResult({ lat:pos.coords.latitude, lng:pos.coords.longitude });
+    }, function(){ onLocationResult(null); }, { enableHighAccuracy:true, timeout:8000, maximumAge:60000 });
+  } else {
+    onLocationResult(null);
+  }
+}
+
+// ネイティブ / ブラウザ 双方の位置情報結果をここで処理
+window.__deliverLocation = function(coords){ onLocationResult(coords); };
+
+function onLocationResult(coords){
+  if(!_map) return;
+  if(coords && typeof coords.lat === 'number'){
+    var c = new mapkit.Coordinate(coords.lat, coords.lng);
+    _map.setRegionAnimated(new mapkit.CoordinateRegion(c, new mapkit.CoordinateSpan(0.02, 0.02)));
+    setCurrentLocationPin(coords.lat, coords.lng);
+    searchNearbyBars(c);
+  } else {
+    // 取得失敗/拒否 → 現在の地図中心で検索（デフォルトは東京駅）
+    searchNearbyBars();
+  }
+}
+
+// 現在地マーカー（MapKit標準ドットの代わり）
+function setCurrentLocationPin(lat, lng){
+  if(!_map || !window.mapkit) return;
+  if(_locAnnotation){ _map.removeAnnotation(_locAnnotation); }
+  _locAnnotation = new mapkit.MarkerAnnotation(new mapkit.Coordinate(lat, lng), {
+    color:'#4A90E2', glyphText:'●', title:'現在地'
+  });
+  _map.addAnnotation(_locAnnotation);
+}
+
+// 周辺のバーをカテゴリ検索して通常ピンで表示
+// （キーワード検索より網羅的。Apple Maps 相当のPOIが出る）
+function searchNearbyBars(coord){
+  if(!_map || !window.mapkit) return;
+  var center = coord || _map.center;
+  var region = new mapkit.CoordinateRegion(center, new mapkit.CoordinateSpan(0.03, 0.03));
+
+  var handle = function(error, data){
+    if(error || !data || !data.places || !data.places.length) return;
+    if(_barAnnotations.length){ _map.removeAnnotations(_barAnnotations); }
+    _barAnnotations = data.places
+      // お気に入り済みの店は金ピンで別途表示するので、ここでは重複させない
+      .filter(function(p){ return !isBarFav({ name:p.name, lat:p.coordinate.latitude, lng:p.coordinate.longitude }); })
+      .map(function(p){
+        var info = { name:p.name, addr:(p.formattedAddress||''), lat:p.coordinate.latitude, lng:p.coordinate.longitude,
+          tel:(p.telephone||''), url:(p.urls && p.urls[0])||'', cat:(p.pointOfInterestCategory||'') };
+        var a = new mapkit.MarkerAnnotation(p.coordinate, {
+          title:p.name, subtitle:info.addr, color:'#7F77DD', glyphText:'🍸',
+          clusteringIdentifier:'bar'
+        });
+        a.barInfo = info;
+        a.addEventListener('select', function(){ onBarSelect(info); });
+        return a;
+      });
+    if(_barAnnotations.length){ _map.addAnnotations(_barAnnotations); }
+  };
+
+  try {
+    // バー系カテゴリ（ナイトライフ・醸造所・ワイナリー）で検索
+    var cats = [
+      mapkit.PointOfInterestCategory.Nightlife,
+      mapkit.PointOfInterestCategory.Brewery,
+      mapkit.PointOfInterestCategory.Winery,
+      mapkit.PointOfInterestCategory.Distillery
+    ];
+    var poi = new mapkit.PointsOfInterestSearch({
+      region: region,
+      pointOfInterestFilter: mapkit.PointOfInterestFilter.including(cats)
+    });
+    poi.search(handle);
+  } catch(e) {
+    // 万一カテゴリ検索が使えない環境ではキーワード検索にフォールバック
+    if(!_barSearch) _barSearch = new mapkit.Search({ getsUserLocation:false, language:'ja' });
+    _barSearch.search('バー', handle, { region: region });
+  }
+}
+
+// お気に入りバーをゴールドピンで表示（常に優先表示）
+function renderBarFavAnnotations(){
+  if(!_map || !window.mapkit) return;
+  if(_favBarAnnotations.length){ _map.removeAnnotations(_favBarAnnotations); }
+  _favBarAnnotations = _barFavs.map(function(b){
+    var a = new mapkit.MarkerAnnotation(new mapkit.Coordinate(b.lat, b.lng), {
+      title:b.name, subtitle:(b.addr||''), color:'#c8a84a', glyphText:'⭐',
+      clusteringIdentifier:'favbar'
+    });
+    a.barInfo = b;
+    a.addEventListener('select', function(){ onBarSelect(b); });
+    return a;
+  });
+  if(_favBarAnnotations.length){ _map.addAnnotations(_favBarAnnotations); }
+}
+
+// お気に入りバーが画面に収まるようズーム
+function jumpToFavBars(){
+  if(!_map || !window.mapkit) return;
+  if(!_barFavs.length){ alert('まだお気に入りのバーがありません。ピンをタップして⭐で登録できます。'); return; }
+  if(_barFavs.length === 1){
+    _map.setRegionAnimated(new mapkit.CoordinateRegion(
+      new mapkit.Coordinate(_barFavs[0].lat, _barFavs[0].lng),
+      new mapkit.CoordinateSpan(0.02, 0.02)
+    ));
+  } else if(_favBarAnnotations.length){
+    _map.showItems(_favBarAnnotations, { animate:true, padding:new mapkit.Padding(60,60,60,60) });
+  }
+}
+
+// バー選択時の詳細パネル
+function onBarSelect(info){
+  _selectedBar = info;
+  document.getElementById('bar-multi').style.display = 'none';
+  document.getElementById('bar-single').style.display = 'block';
+  document.getElementById('bar-detail-name').textContent = info.name || 'バー';
+  var cl = catLabel(info.cat);
+  document.getElementById('bar-detail-addr').textContent = (cl ? cl + ' · ' : '') + (info.addr || '');
+  renderBarActions(info);
+  document.getElementById('bar-detail').style.display = 'block';
+  updateBarFavBtn();
+}
+
+// カテゴリの日本語表示
+function catLabel(c){
+  var m = { Nightlife:'バー・ナイトライフ', Brewery:'ブルワリー', Winery:'ワイナリー', Distillery:'蒸溜所', Restaurant:'レストラン', Cafe:'カフェ' };
+  return m[c] || '';
+}
+
+// 詳細シートのアクションボタン（データがある項目だけ表示）
+function renderBarActions(info){
+  var el = document.getElementById('bar-actions');
+  el.innerHTML = '';
+  el.appendChild(makeActionBtn('mpb', '🗺️ Apple Mapsで開く（詳細・経路）', function(){ openInAppleMaps(info); }));
+  if(info.tel){ el.appendChild(makeActionBtn('menu-btn', '📞 電話する', function(){ openExternalUrl('tel:' + info.tel); })); }
+  if(info.url){ el.appendChild(makeActionBtn('menu-btn', '🌐 サイト・口コミを見る', function(){ openExternalUrl(info.url); })); }
+}
+function makeActionBtn(cls, label, fn){
+  var b = document.createElement('button'); b.className = cls; b.textContent = label; b.onclick = fn; return b;
+}
+
+// ネイティブApple Mapsでその店を開く（完全な詳細・経路はここで）
+function openInAppleMaps(info){
+  if(!info) return;
+  var url = 'https://maps.apple.com/?q=' + encodeURIComponent(info.name || 'バー') + '&ll=' + info.lat + ',' + info.lng;
+  openExternalUrl(url);
+}
+
+// 外部URL/電話をネイティブ側で開く（https・tel のみ）
+function openExternalUrl(url){
+  if(!url) return;
+  if(window.ReactNativeWebView){ sendToRN({ type:'openExternal', url:url }); }
+  else { try{ window.open(url, '_blank'); }catch(e){} }
+}
+
+// クラスタ（重なったピン）タップ時：中の店をリスト表示して選ばせる
+function onClusterSelect(cluster){
+  var members = (cluster && cluster.memberAnnotations) || [];
+  document.getElementById('bar-single').style.display = 'none';
+  document.getElementById('bar-multi').style.display = 'block';
+  document.getElementById('bar-multi-title').textContent = 'このあたりのバー ' + members.length + '軒';
+  var listEl = document.getElementById('bar-multi-list');
+  listEl.innerHTML = '';
+  members.forEach(function(m){
+    var info = m.barInfo; if(!info) return;
+    var row = document.createElement('div'); row.className = 'bar-row';
+    var ic = document.createElement('span'); ic.textContent = isBarFav(info) ? '⭐' : '🍸';
+    var nm = document.createElement('span'); nm.className = 'bar-row-name'; nm.textContent = info.name || 'バー';
+    row.appendChild(ic); row.appendChild(nm);
+    row.onclick = function(){ onBarSelect(info); };
+    listEl.appendChild(row);
+  });
+  document.getElementById('bar-detail').style.display = 'block';
+}
+function hideBarDetail(){ var d=document.getElementById('bar-detail'); if(d) d.style.display='none'; _selectedBar=null; }
+
+function barKey(b){ return (b.name||'') + '|' + Math.round(b.lat*1e5) + '|' + Math.round(b.lng*1e5); }
+function isBarFav(b){ return _barFavs.some(function(f){ return barKey(f)===barKey(b); }); }
+
+function updateBarFavBtn(){
+  var btn = document.getElementById('bar-fav-btn');
+  if(!btn || !_selectedBar) return;
+  btn.textContent = isBarFav(_selectedBar) ? '❤ お気に入りから削除' : '🤍 このバーをお気に入りに追加';
+}
+
+function toggleBarFav(){
+  if(!_selectedBar) return;
+  if(isBarFav(_selectedBar)){
+    _barFavs = _barFavs.filter(function(f){ return barKey(f)!==barKey(_selectedBar); });
+  } else {
+    _barFavs.unshift({ name:_selectedBar.name, addr:_selectedBar.addr||'', lat:_selectedBar.lat, lng:_selectedBar.lng,
+      tel:_selectedBar.tel||'', url:_selectedBar.url||'', cat:_selectedBar.cat||'', t:Date.now() });
+  }
+  saveBarFavs();
+  renderBarFavAnnotations();
+  updateBarFavBtn();
+  sendToRN({ type:'saveBarFav', data:_barFavs });
 }
 
 </script>

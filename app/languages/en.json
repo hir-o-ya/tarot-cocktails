@@ -1,0 +1,5 @@
+{
+  "ios": {
+    "NSLocationWhenInUseUsageDescription": "Your location is used to show nearby bars on the map."
+  }
+}

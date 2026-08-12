@@ -1,0 +1,14 @@
+# Cloudflare Worker 設定
+# 機密・識別子（秘密鍵・Key ID・Team ID）は wrangler.toml に書かず、
+# すべて secret として登録する（公開リポジトリにも残さないため）:
+#   npx wrangler secret put MAPKIT_PRIVATE_KEY
+#   npx wrangler secret put MAPKIT_KEY_ID
+#   npx wrangler secret put MAPKIT_TEAM_ID
+
+name = "tarot-mapkit-token"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+[vars]
+# 非機密の設定のみ。KEY_ID / TEAM_ID / PRIVATE_KEY は secret で登録する（上記コメント参照）。
+TOKEN_TTL_SECONDS = "1800"
